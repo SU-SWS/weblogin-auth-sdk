@@ -1,0 +1,54 @@
+{
+  "parser": "@typescript-eslint/parser",
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "rules": {
+    "comma-dangle": ["error", {
+      "objects": "always-multiline",
+      "arrays": "always-multiline",
+      "imports": "always-multiline",
+      "exports": "always-multiline",
+      "functions": "never"
+      }],
+    "max-len": ["warn", { "code": 120, "ignoreStrings": true }],
+    "no-use-before-define": "off",
+    "no-param-reassign": "off",
+    "object-curly-newline": ["error", { "consistent": true, "minProperties": 4 }],
+    "import/extensions": "off",
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": ["error"],
+    "space-before-function-paren": 0,
+    "import/prefer-default-export": 0,
+    "import/no-extraneous-dependencies": 0,
+    "import/no-cycle": 0,
+    "import/no-unresolved": 0,
+    "no-unused-vars": 0,
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "vars": "local",
+        "args": "none"
+      }
+    ],
+    "import/export": 0,
+    "func-names": 0,
+    "semi": [1, "always"], // 1 is for warning
+  },
+  "env": {
+    "node": true,
+    "browser": true,
+    "jest": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "ecmaFeatures": {
+      "legacyDecorators": true,
+    }
+  },
+  "settings": {
+    "react": {
+      "version": "16"
+    }
+  }
+}

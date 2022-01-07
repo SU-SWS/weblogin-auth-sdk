@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "build": "webpack",
+    "prepare": "npm run build",
     "lint": "eslint \"src/**/*.{ts,tsx.js,jsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --quiet --fix",
     "test": "echo \"Error: no test specified\" && exit 1"

@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
-    "outDir": "./dist/",
-    "module": "es6",
+    "outDir": "./dist",
+    "module": "commonjs",
+    "declaration": true,
     "target": "es5",
     "allowJs": true,
     "moduleResolution": "node"
   },
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

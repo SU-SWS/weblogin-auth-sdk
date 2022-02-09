@@ -48,3 +48,8 @@ jobs:
           from_branch: main
           target_branch: dev
           github_token: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+      - name: "Publish to NPM"
+        uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          access: 'public'

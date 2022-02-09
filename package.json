@@ -1,6 +1,6 @@
 {
   "name": "adapt-auth-sdk",
-  "version": "1.0.0-dev",
+  "version": "1.0.0",
   "description": "Provides all the functionality needed to easily integrate your Javascript web applications with Stanford SAML federated identity provider.",
   "main": "dist/index.js",
   "types": "dist/types.d.ts",

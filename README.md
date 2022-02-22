@@ -50,8 +50,6 @@ ADAPT_AUTH_SESSION_NAME="adapt-auth"
 ADAPT_AUTH_SESSION_EXPIRES_IN="24h"
 # Local url to redirect to after logging out of session (optional) defaults to "/"
 ADAPT_AUTH_SESSION_LOGOUT_URL="/login"
-# Local url to redirect to after logging in (optional)
-ADAPT_AUTH_SESSION_LOGIN_URL="/dashboard"
 # Local url to redirect to after authorize middleware failure (optional) defaults to responding 401
 ADAPT_AUTH_SESSION_UNAUTHORIZED_URL
 ```
@@ -72,7 +70,6 @@ const myAuthInstance = new AdaptAuth({
     name: 'my-auth-session',
     secret: 'my-jwt-secret',
     logoutRedirectUrl: '/login',
-    loginRedirectUrl: '/dashboard',
     unauthorizedRedirectUrl: '/login?code=UNAUTHORIZED',
   },
 });
@@ -105,7 +102,13 @@ app.use(cookieParser());
 app.get('/login', auth.initiate());
 
 // Handle SAML document POST back. User redirected to '/dashboard' on successful authentication
-app.post('/saml/authenticate', auth.authenticate('/dashboard'));
+app.post(
+  '/api/auth/callback',
+  authInstance.authenticate(),
+  (req, res, next) => {
+    res.redirect('/dashboard);
+  }
+);
 
 // Protect endpoints with local session authorization. Unauthorized users redirected to '/login' here
 app.get(
@@ -188,15 +191,12 @@ Middleware that destroys local jwt session and redirects.
 app.get('/logout', auth.destroySession('/public-homepage'));
 ```
 
-### `AdaptAuth.authenticate(redirectUrl?: string)`
+### `AdaptAuth.authenticate()`
 This middleware is a wrapper for the entire authentication process intended to be used as the saml POST back endpoint.
 It handles passport initialization, SAML document verification, and local jwt session creation.
-NOTE: When `redirectUrl` and `config.loginRedirectUrl` are unset `authenticate` calls `next()` like any other standard middleware.
-
-- `redirectUrl?: string` Optional url to redirect to after authentication complete. Overrides `config.loginRedirectUrl`.
 
 ```typescript
-app.post('/handle/saml', auth.authenticate('/dashboard'));
+app.post('/handle/saml', auth.authenticate());
 ```
 
 ### `AdaptAuth.authorize(options?: AuthorizeOptions = {})`

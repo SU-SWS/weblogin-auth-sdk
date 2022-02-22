@@ -37,7 +37,6 @@ export class AdaptAuth {
         name: process.env.ADAPT_AUTH_SESSION_NAME || 'adapt-auth',
         expiresIn: process.env.ADAPT_AUTH_SESSION_EXPIRES_IN || '12h',
         logoutRedirectUrl: process.env.ADAPT_AUTH_SESSION_LOGOUT_URL || '/',
-        loginRedirectUrl: process.env.ADAPT_AUTH_SESSION_LOGIN_URL,
         unauthorizedRedirectUrl: process.env.ADAPT_AUTH_SESSION_UNAUTHORIZED_URL,
         ...(config.session || {}),
       },
@@ -174,7 +173,7 @@ export class AdaptAuth {
   /**
    * Convenience middleware that wraps the entire saml auth process into a single middleware
    */
-  public authenticate = (redirectUrl?: string): Handler => async (req, res, next) => {
+  public authenticate = (): Handler => async (req, res, next) => {
     // Initialize
     this.initialize()(req, res, async (initErr) => {
       if (initErr) {
@@ -190,12 +189,7 @@ export class AdaptAuth {
 
         // Response
         return this.createSession()(req as SamlUserRequest, res, () => {
-          const loginRedirect = redirectUrl || this.getFinalDestination(req) || this.config.session.loginRedirectUrl;
-          if (loginRedirect) {
-            res.redirect(loginRedirect);
-          } else {
-            next();
-          }
+          next();
         });
       });
     });

@@ -221,3 +221,33 @@ app.get(
 Helper function to extract possible `finalDestination` url from SAML relay state on request object.
 
 - `req: any` The request object to extract saml final destination from
+
+
+### Caveats when using on Netlify-hosted sites
+If you are using https://github.com/bencao/netlify-plugin-inline-functions-env to inline your environment variables, 
+be aware that it only replaces process.env.[variable_name] usages for files inside your functions directory. 
+
+Because of this, you should not rely on the singleton object or the defaults provided by the constructor.
+You'll need to initate an AdaptAuth instance inside a file in your functions directory, and pass in the full list of options. 
+It's fine to copy-paste these from the constructor in src/AdaptAuth.ts as a starting point, as shown below:
+
+```
+const authInstance = new AdaptAuth({
+  saml: {
+    serviceProviderLoginUrl: process.env.ADAPT_AUTH_SAML_SP_URL || 'https://adapt-sso-uat.stanford.edu/api/sso/login',
+    entity: process.env.ADAPT_AUTH_SAML_ENTITY || 'adapt-sso-uat',
+    cert: process.env.ADAPT_AUTH_SAML_CERT,
+    decryptionKey: process.env.ADAPT_AUTH_SAML_DECRYPTION_KEY,
+    returnTo: process.env.ADAPT_AUTH_SAML_RETURN_URL,
+    returnToOrigin: siteUrl,
+    returnToPath: process.env.ADAPT_AUTH_SAML_RETURN_PATH,
+  },
+  session: {
+    secret: process.env.ADAPT_AUTH_SESSION_SECRET,
+    name: process.env.ADAPT_AUTH_SESSION_NAME || 'adapt-auth',
+    expiresIn: process.env.ADAPT_AUTH_SESSION_EXPIRES_IN || '12h',
+    loginRedirectUrl: process.env.ADAPT_AUTH_SESSION_LOGIN_URL || '/',
+    unauthorizedRedirectUrl: process.env.ADAPT_AUTH_SESSION_UNAUTHORIZED_URL,
+  },
+});
+```

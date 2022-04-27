@@ -91,9 +91,9 @@ export interface AdaptAuthConfig {
 export interface AuthUser {
   userName: string;
   email: string;
-  firstName: string;
+  firstName?: string;
   lastName: string;
-  SUID: string;
+  SUID?: string;
   encodedSUID: string;
 }
 

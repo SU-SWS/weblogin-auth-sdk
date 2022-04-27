@@ -2,7 +2,7 @@
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
 import { Strategy as SamlStrategy } from 'passport-saml';
-import * as jwt from 'jsonwebtoken';
+import { SignJWT, jwtVerify } from 'jose';
 import { serialize } from 'cookie';
 import {
   AdaptAuthConfig,
@@ -107,32 +107,28 @@ export class AdaptAuth {
    */
   public authenticateSaml = () => passport.authenticate(this.saml.name, { session: false });
 
-  public signToken = (user: AuthUser) => {
-    const token = jwt.sign(user, this.config.session.secret, {
-      expiresIn: this.config.session.expiresIn,
-    });
+  public signToken = async (user: AuthUser) => {
+    const token = await new SignJWT(user as Record<string, any>)
+      .setProtectedHeader({ alg: 'HS256' })
+      .setExpirationTime(this.config.session.expiresIn)
+      .sign(new TextEncoder().encode(this.config.session.secret));
     return token;
   };
 
-  public verifyToken = async (token: string) => new Promise<AuthUser>((resolve, reject) => {
-    jwt.verify(token, this.config.session.secret, { maxAge: this.config.session.expiresIn }, (error, payload) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(payload as AuthUser);
-      }
-    });
-  });
+  public verifyToken = async (token: string) => {
+    const verified = await jwtVerify(token, new TextEncoder().encode(this.config.session.secret));
+    return verified.payload as unknown as AuthUser;
+  };
 
   /**
    * Create signed auth session by setting user jwt to cookie
    */
-  public createSession = () => (req: SamlUserRequest, res: Response, next: NextFunction) => {
+  public createSession = () => async (req: SamlUserRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       throw new Error('Unauthorized');
     }
 
-    const token = this.signToken(req.user);
+    const token = await this.signToken(req.user);
     res.setHeader('Set-Cookie', [
       // HTTP Only cookie includes session token
       serialize(this.config.session.name, token, {

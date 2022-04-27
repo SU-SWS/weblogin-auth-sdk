@@ -27,7 +27,7 @@
   "dependencies": {
     "cookie": "^0.4.1",
     "express": "^4.17.2",
-    "jsonwebtoken": "^8.5.1",
+    "jose": "^4.8.0",
     "passport": "^0.5.2",
     "passport-saml": "^3.2.0"
   },

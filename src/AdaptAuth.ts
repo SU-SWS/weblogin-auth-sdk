@@ -2,7 +2,6 @@
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
 import { Strategy as SamlStrategy } from 'passport-saml';
-import { SignJWT, jwtVerify } from 'jose';
 import { serialize } from 'cookie';
 import {
   AdaptAuthConfig,
@@ -11,6 +10,7 @@ import {
   SamlUserRequest,
   DeepPartial,
 } from './types';
+import { signJWT, validateSessionCookie, verifyToken } from './jwt';
 
 export class AdaptAuth {
   public config: AdaptAuthConfig;
@@ -107,18 +107,12 @@ export class AdaptAuth {
    */
   public authenticateSaml = () => passport.authenticate(this.saml.name, { session: false });
 
-  public signToken = async (user: AuthUser) => {
-    const token = await new SignJWT(user as Record<string, any>)
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime(this.config.session.expiresIn)
-      .sign(new TextEncoder().encode(this.config.session.secret));
-    return token;
-  };
+  public signToken = async (user: AuthUser) => signJWT(user, {
+    secret: this.config.session.secret,
+    expiresIn: this.config.session.expiresIn,
+  });
 
-  public verifyToken = async (token: string) => {
-    const verified = await jwtVerify(token, new TextEncoder().encode(this.config.session.secret));
-    return verified.payload as unknown as AuthUser;
-  };
+  public verifyToken = async (token: string) => verifyToken(token, { secret: this.config.session.secret });
 
   /**
    * Create signed auth session by setting user jwt to cookie
@@ -221,11 +215,10 @@ export class AdaptAuth {
   /**
    * Validate session cookie on request
    */
-  public validateSessionCookie = async <T extends { cookies?: Record<string, any> }>(req: T) => {
-    const token = req.cookies[this.config.session.name];
-    const user = await this.verifyToken(token);
-    return user;
-  };
+  public validateSessionCookie = async <T extends { cookies?: Record<string, any> }>(req: T) => validateSessionCookie(
+    req,
+    { secret: this.config.session.secret, name: this.config.session.name }
+  );
 
   /**
    * Helper to extract the saml relay final destination url from req object

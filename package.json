@@ -1,6 +1,6 @@
 {
-  "name": "adapt-auth-sdk",
-  "version": "1.0.7",
+  "name": "weblogin-auth-sdk",
+  "version": "0.1.0",
   "description": "Provides all the functionality needed to easily integrate your Javascript web applications with Stanford SAML federated identity provider.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,20 +16,24 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SU-SWS/adapt-auth-sdk.git"
+    "url": "git+https://github.com/SU-SWS/weblogin-auth-sdk.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/SU-SWS/adapt-auth-sdk/issues"
+    "url": "https://github.com/SU-SWS/weblogin-auth-sdk/issues"
   },
-  "homepage": "https://github.com/SU-SWS/adapt-auth-sdk#readme",
+  "homepage": "https://github.com/SU-SWS/weblogin-auth-sdk#readme",
   "dependencies": {
+    "body-parser": "^1.20.0",
     "cookie": "^0.4.1",
+    "cookie-parser": "^1.4.6",
     "express": "^4.17.2",
+    "express-session": "^1.17.3",
     "jose": "^4.8.0",
+    "morgan": "^1.10.0",
     "passport": "^0.5.2",
-    "passport-saml": "^3.2.0"
+    "passport-stanford": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^17.0.8",

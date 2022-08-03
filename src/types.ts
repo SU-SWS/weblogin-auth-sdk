@@ -16,7 +16,7 @@ export interface AuthorizeOptions {
 /**
  * Session config
  */
-export interface AdaptAuthSessionConfig {
+export interface AuthSessionConfig {
   /**
    * JWT signing secret
    */
@@ -46,7 +46,7 @@ export interface AdaptAuthSessionConfig {
 /**
  * SAML Config
  */
-export interface AdaptAuthSamlConfig {
+export interface AuthSamlConfig {
   /**
    * Login entrypoint relay for adapt-sso-sp
    */
@@ -80,9 +80,9 @@ export interface AdaptAuthSamlConfig {
 /**
  * SDK configuration
  */
-export interface AdaptAuthConfig {
-  saml: AdaptAuthSamlConfig;
-  session: AdaptAuthSessionConfig;
+export interface AuthConfig {
+  saml: AuthSamlConfig;
+  session: AuthSessionConfig;
 }
 
 /**

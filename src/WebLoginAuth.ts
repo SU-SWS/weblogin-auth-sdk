@@ -100,7 +100,7 @@ export class WebLoginAuth {
       this.config.saml.returnTo ||
       `${this.config.saml.returnToOrigin}${this.config.saml.returnToPath}`;
     const params = {
-      entity: this.config.saml.entityId,
+      entityId: this.config.saml.entityId,
       return_to: returnTo,
       // Pass final_destination through
       ...(final ? { final_destination: final } : {}),

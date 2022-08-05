@@ -111,7 +111,7 @@ export type AuthUserRequest = WithAuthUser<Request>;
  * SAML RelayState Object
  */
 export interface SamlRelayState {
-  entity: string;
+  entityId: string;
   returnTo?: string;
   finalDestination?: string;
   [key: string]: string;

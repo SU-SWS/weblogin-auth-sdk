@@ -53,8 +53,8 @@ export class WebLoginAuth {
         loginPath: this.config.saml.serviceProviderLoginUrl,
         passReqToCallback: true,
         passport: passport,
-        decryptionPvkPath: this.config.saml.decryptionKey,
-        decryptionCertPath: this.config.saml.decryptionCert,
+        decryptionPvk: this.config.saml.decryptionKey,
+        decryptionCert: this.config.saml.decryptionCert,
       },
       (req, profile, done) => {
         const user = {

@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
-import { suSAML as SamlStrategy } from 'passport-stanford';
+import { Strategy as SamlStrategy } from 'passport-stanford';
 import { serialize } from 'cookie';
 import {
   WebLoginAuthConfig,

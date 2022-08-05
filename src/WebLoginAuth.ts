@@ -25,6 +25,7 @@ export class WebLoginAuth {
         serviceProviderLoginUrl: process.env.WEBLOGIN_AUTH_SAML_SP_URL || '/saml',
         entityId: process.env.WEBLOGIN_AUTH_SAML_ENTITY_ID || 'https://github.com/su-sws/adapt-stripe',
         cert: process.env.WEBLOGIN_AUTH_SAML_CERT,
+        decryptionCert: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT,
         decryptionKey: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
         returnTo: process.env.WEBLOGIN_AUTH_SAML_RETURN_URL,
         returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN || '',

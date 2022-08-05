@@ -60,7 +60,11 @@ export interface WebLoginAuthSamlConfig {
    */
   cert: string | string[];
   /**
-   * Optional private key used to decrypt encrypted SAML assertions
+   * Public key used to decrypt encrypted SAML assertions
+   */
+  decryptionCert?: string;
+  /**
+   * Private key used to decrypt encrypted SAML assertions
    */
   decryptionKey?: string;
   /**

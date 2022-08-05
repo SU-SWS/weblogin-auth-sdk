@@ -48,13 +48,13 @@ export interface WebLoginAuthSessionConfig {
  */
 export interface WebLoginAuthSamlConfig {
   /**
-   * Login entrypoint relay for adapt-sso-sp
+   * Login entrypoint 
    */
   serviceProviderLoginUrl: string;
   /**
-   * SAML Application entity id
+   * Login entrypoint Id
    */
-  entity: string;
+  entityId: string;
   /**
    * SAML public signing verification certificate
    */
@@ -63,18 +63,6 @@ export interface WebLoginAuthSamlConfig {
    * Optional private key used to decrypt encrypted SAML assertions
    */
   decryptionKey?: string;
-  /**
-   * Absolute application for SAML document POST back
-   */
-  returnTo?: string;
-  /**
-   * Application origin for SAML document POST back
-   */
-  returnToOrigin?: string;
-  /**
-   * Application url path for SAML document POST back
-   */
-  returnToPath?: string;
 }
 
 /**

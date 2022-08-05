@@ -22,22 +22,19 @@ export class WebLoginAuth {
     this.config = {
       ...config,
       saml: {
-        serviceProviderLoginUrl: process.env.ADAPT_AUTH_SAML_SP_URL || '/saml',
-        entity: process.env.ADAPT_AUTH_SAML_ENTITY || 'adapt-sso-uat',
-        cert: process.env.ADAPT_AUTH_SAML_CERT || 'you-must-pass-cert',
-        decryptionKey: process.env.ADAPT_AUTH_SAML_DECRYPTION_KEY,
-        returnTo: process.env.ADAPT_AUTH_SAML_RETURN_URL,
-        returnToOrigin: process.env.ADAPT_AUTH_SAML_RETURN_ORIGIN || '',
-        returnToPath: process.env.ADAPT_AUTH_SAML_RETURN_PATH || '',
+        serviceProviderLoginUrl: process.env.WEBLOGIN_AUTH_SAML_SP_URL || '/saml',
+        entityId: process.env.WEBLOGIN_AUTH_SAML_ENTITY_ID || 'https://github.com/su-sws/adapt-stripe',
+        cert: process.env.WEBLOGIN_AUTH_SAML_CERT ,
+        decryptionKey: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
         ...(config.saml || {}),
       },
       session: {
-        secret: process.env.ADAPT_AUTH_SESSION_SECRET || '',
-        name: process.env.ADAPT_AUTH_SESSION_NAME || 'adapt-auth',
-        expiresIn: process.env.ADAPT_AUTH_SESSION_EXPIRES_IN || '12h',
-        logoutRedirectUrl: process.env.ADAPT_AUTH_SESSION_LOGOUT_URL || '/',
+        secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET || '',
+        name: process.env.WEBLOGIN_AUTH_SESSION_NAME || 'weblogin-auth',
+        expiresIn: process.env.WEBLOGIN_AUTH_SESSION_EXPIRES_IN || '12h',
+        logoutRedirectUrl: process.env.WEBLOGIN_AUTH_SESSION_LOGOUT_URL || '/',
         unauthorizedRedirectUrl:
-          process.env.ADAPT_AUTH_SESSION_UNAUTHORIZED_URL,
+          process.env.WEBLOGIN_AUTH_SESSION_UNAUTHORIZED_URL,
         ...(config.session || {}),
       },
     };
@@ -46,8 +43,8 @@ export class WebLoginAuth {
     this.saml = new SamlStrategy(
       {
         protocol: 'http://',
-        idp: 'dev',
-        entityId: 'https://github.com/scottylogan/passport-stanford',
+        idp: 'prod',
+        entityId: this.config.saml.entityId,
         path: this.config.saml.serviceProviderLoginUrl,
         loginPath: this.config.saml.serviceProviderLoginUrl,
         passReqToCallback: true,

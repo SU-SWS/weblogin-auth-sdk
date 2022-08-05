@@ -63,6 +63,18 @@ export interface WebLoginAuthSamlConfig {
    * Optional private key used to decrypt encrypted SAML assertions
    */
   decryptionKey?: string;
+  /**
+   * Absolute application for SAML document POST back
+   */
+   returnTo?: string;
+   /**
+    * Application origin for SAML document POST back
+    */
+   returnToOrigin?: string;
+   /**
+    * Application url path for SAML document POST back
+    */
+   returnToPath?: string;
 }
 
 /**

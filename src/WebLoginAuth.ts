@@ -46,8 +46,8 @@ export class WebLoginAuth {
     this.saml = new SamlStrategy(
       {
         protocol: 'http://',
-        idp: 'stanford',
-        entityId: 'http://localhost/',
+        idp: 'dev',
+        entityId: 'https://github.com/scottylogan/passport-stanford',
         path: this.config.saml.serviceProviderLoginUrl,
         loginPath: this.config.saml.serviceProviderLoginUrl,
         passReqToCallback: true,
@@ -82,16 +82,23 @@ export class WebLoginAuth {
   /**
    * Redirect request to SAML idp with configured query params
    */
-   public initiate = (): Handler => (req, res) => {
+  public initiate = (): Handler => (req, res) => {
     // Pass along final destination
     const final = req.query.final_destination as string;
-    const isMoreThanUrlPath = final && /^(https?:\/\/)?([a-z0-9.-]+)/.test(final);
+    const isMoreThanUrlPath =
+      final && /^(https?:\/\/)?([a-z0-9.-]+)/.test(final);
 
     if (isMoreThanUrlPath) {
-      return res.status(400).json('Invalid "final_destination" parameter. Must be be local url path part');
+      return res
+        .status(400)
+        .json(
+          'Invalid "final_destination" parameter. Must be be local url path part'
+        );
     }
 
-    const returnTo = this.config.saml.returnTo || `${this.config.saml.returnToOrigin}${this.config.saml.returnToPath}`;
+    const returnTo =
+      this.config.saml.returnTo ||
+      `${this.config.saml.returnToOrigin}${this.config.saml.returnToPath}`;
     const params = {
       entity: this.config.saml.entity,
       return_to: returnTo,
@@ -110,43 +117,47 @@ export class WebLoginAuth {
    * Handle POSTed saml assertion and create user session
    * NOTE: Must use initilaize middleware prior to authenticate
    */
-  public authenticateSaml = () => passport.authenticate(this.saml.name, { session: false });
+  public authenticateSaml = () =>
+    passport.authenticate(this.saml.name, { session: false });
 
-  public signToken = async (user: AuthUser) => signJWT(user, {
-    secret: this.config.session.secret,
-    expiresIn: this.config.session.expiresIn,
-  });
+  public signToken = async (user: AuthUser) =>
+    signJWT(user, {
+      secret: this.config.session.secret,
+      expiresIn: this.config.session.expiresIn,
+    });
 
-  public verifyToken = async (token: string) => verifyToken(token, { secret: this.config.session.secret });
+  public verifyToken = async (token: string) =>
+    verifyToken(token, { secret: this.config.session.secret });
 
   /**
    * Create signed auth session by setting user jwt to cookie
    */
-  public createSession = () => async (req: SamlUserRequest, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      throw new Error('Unauthorized');
-    }
+  public createSession =
+    () => async (req: SamlUserRequest, res: Response, next: NextFunction) => {
+      if (!req.user) {
+        throw new Error('Unauthorized');
+      }
 
-    const token = await this.signToken(req.user);
-    res.setHeader('Set-Cookie', [
-      // HTTP Only cookie includes session token
-      serialize(this.config.session.name, token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: 'strict',
-        path: '/',
-      }),
-      // client side cookie to alert frontend that session is active
-      serialize(`${this.config.session.name}-session`, 'active', {
-        httpOnly: false,
-        secure: false,
-        sameSite: 'strict',
-        path: '/',
-      }),
-    ]);
+      const token = await this.signToken(req.user);
+      res.setHeader('Set-Cookie', [
+        // HTTP Only cookie includes session token
+        serialize(this.config.session.name, token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV !== 'development',
+          sameSite: 'strict',
+          path: '/',
+        }),
+        // client side cookie to alert frontend that session is active
+        serialize(`${this.config.session.name}-session`, 'active', {
+          httpOnly: false,
+          secure: false,
+          sameSite: 'strict',
+          path: '/',
+        }),
+      ]);
 
-    next();
-  };
+      next();
+    };
 
   /**
    * Destory the local auth session
@@ -195,35 +206,43 @@ export class WebLoginAuth {
    * Authorize requests against against valid jwt tokens
    * Attach authorized user to req object
    */
-  public authorize = (options: AuthorizeOptions = {}): Handler => async (req, res, next) => {
-    try {
-      const user = await this.validateSessionCookie(req);
-      req.user = user;
-      next();
-    } catch (error) {
-      // Allow unauthorized requests through
-      if (options.allowUnauthorized) {
+  public authorize =
+    (options: AuthorizeOptions = {}): Handler =>
+    async (req, res, next) => {
+      try {
+        const user = await this.validateSessionCookie(req);
+        req.user = user;
         next();
-      } else {
-        // Check for unauthorized redirect
-        const redirectUrl = options.redirectUrl || this.config.session.unauthorizedRedirectUrl;
-        if (redirectUrl) {
-          res.redirect(redirectUrl);
+      } catch (error) {
+        // Allow unauthorized requests through
+        if (options.allowUnauthorized) {
+          next();
         } else {
-          // Default 401 response
-          res.status(401).json('UNAUTHORIZED');
+          // Check for unauthorized redirect
+          const redirectUrl =
+            options.redirectUrl || this.config.session.unauthorizedRedirectUrl;
+          if (redirectUrl) {
+            res.redirect(redirectUrl);
+          } else {
+            // Default 401 response
+            res.status(401).json('UNAUTHORIZED');
+          }
         }
       }
-    }
-  };
+    };
 
   /**
    * Validate session cookie on request
    */
-  public validateSessionCookie = async <T extends { cookies?: Record<string, any> }>(req: T) => validateSessionCookie(
-    req,
-    { secret: this.config.session.secret, name: this.config.session.name }
-  );
+  public validateSessionCookie = async <
+    T extends { cookies?: Record<string, any> }
+  >(
+    req: T
+  ) =>
+    validateSessionCookie(req, {
+      secret: this.config.session.secret,
+      name: this.config.session.name,
+    });
 
   /**
    * Helper to extract the saml relay final destination url from req object
@@ -234,7 +253,6 @@ export class WebLoginAuth {
       const relayState = req.samlRelayState;
       const finalDest = relayState.finalDestination || null;
       return finalDest;
-
     } catch (err) {
       // I guess the relayState wasn't that great...
       console.log('Unable to parse samlRelayState', err);

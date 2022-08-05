@@ -33,6 +33,7 @@
     "jose": "^4.8.0",
     "morgan": "^1.10.0",
     "passport": "^0.5.2",
+    "passport-saml": "^3.2.1",
     "passport-stanford": "^1.1.1"
   },
   "devDependencies": {

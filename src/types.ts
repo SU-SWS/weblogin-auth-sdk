@@ -91,8 +91,7 @@ export interface WebLoginAuthConfig {
 export interface AuthUser {
   userName: string;
   email: string;
-  firstName?: string;
-  lastName: string;
+  digitalName?: string;
   SUID?: string;
   encodedSUID: string;
 }

@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
-import { Strategy as SamlStrategy } from 'passport-stanford';
 import { serialize } from 'cookie';
 import {
   WebLoginAuthConfig,
@@ -11,19 +10,23 @@ import {
   DeepPartial,
 } from './types';
 import { signJWT, validateSessionCookie, verifyToken } from './jwt';
+import SamlStrategy from './samlStrategy';
 
 export class WebLoginAuth {
   public config: WebLoginAuthConfig;
 
-  private saml: SamlStrategy;
+  private saml: typeof SamlStrategy;
 
   constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
     // Get config values from env, but override if setting directly in constructor config
     this.config = {
       ...config,
       saml: {
-        serviceProviderLoginUrl: process.env.WEBLOGIN_AUTH_SAML_SP_URL || '/saml',
-        entityId: process.env.WEBLOGIN_AUTH_SAML_ENTITY_ID || 'https://github.com/su-sws/adapt-stripe',
+        serviceProviderLoginUrl:
+          process.env.WEBLOGIN_AUTH_SAML_SP_URL || '/saml',
+        entityId:
+          process.env.WEBLOGIN_AUTH_SAML_ENTITY_ID ||
+          'https://github.com/su-sws/adapt-stripe',
         cert: process.env.WEBLOGIN_AUTH_SAML_CERT,
         decryptionCert: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT,
         decryptionKey: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
@@ -42,6 +45,7 @@ export class WebLoginAuth {
         ...(config.session || {}),
       },
     };
+
 
     // Configure passport for SAML
     this.saml = new SamlStrategy(

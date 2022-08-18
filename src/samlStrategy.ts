@@ -80,9 +80,9 @@ function SamlStrategy (options, verify) {
 
   // call the parent method before setting the SamlStrategy name,
   // otherwise the name will always be 'saml'
-  Strategy.call(
-    this,
-    options,
+  new Strategy(
+    {...this,
+      ...options},
     function (req, profile, done) {
       req.session.SamlStrategy = this.name;
       this.attributeMapper(profile, done);

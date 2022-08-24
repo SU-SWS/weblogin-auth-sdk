@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { SamlOptions } from 'passport-saml/lib/node-saml/types';
 
 // NOTE: This type is duplicated here so we can more easily abstract this module for distribution
 export type DeepPartial<T extends {}> = {
@@ -22,7 +23,7 @@ export interface WebLoginAuthSessionConfig {
    */
   secret: string;
   /**
-   * Name for session cookie. Defaults to 'adapt-auth'
+   * Name for session cookie. Defaults to 'weblogin-auth'
    */
   name: string;
   /**
@@ -46,39 +47,17 @@ export interface WebLoginAuthSessionConfig {
 /**
  * SAML Config
  */
-export interface WebLoginAuthSamlConfig {
-  /**
-   * Login entrypoint 
-   */
-  serviceProviderLoginUrl: string;
-  /**
-   * Login entrypoint Id
-   */
-  entityId: string;
-  /**
-   * SAML public signing verification certificate
-   */
-  cert: string | string[];
-  /**
-   * Public key used to decrypt encrypted SAML assertions
-   */
-  decryptionCert?: string;
-  /**
-   * Private key used to decrypt encrypted SAML assertions
-   */
-  decryptionKey?: string;
-  /**
-   * Absolute application for SAML document POST back
-   */
-   returnTo?: string;
+export interface WebLoginAuthSamlConfig extends SamlOptions {
+
+  returnTo?: string;
    /**
     * Application origin for SAML document POST back
     */
-   returnToOrigin?: string;
+  returnToOrigin?: string;
    /**
     * Application url path for SAML document POST back
     */
-   returnToPath?: string;
+  returnToPath?: string;
 }
 
 /**

@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
+import { Strategy as SamlStrategy } from 'passport-saml';
 import { serialize } from 'cookie';
 import {
   WebLoginAuthConfig,
@@ -10,27 +11,32 @@ import {
   DeepPartial,
 } from './types';
 import { signJWT, validateSessionCookie, verifyToken } from './jwt';
-import SamlStrategy from './samlStrategy';
+import idps from './lib/idps';
+import { attrmap } from './lib/attributes';
 
 export class WebLoginAuth {
-  public config: WebLoginAuthConfig;
+  public config;
 
-  private saml: typeof SamlStrategy;
+  private saml: SamlStrategy;
 
-  constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
-    // Get config values from env, but override if setting directly in constructor config
+  // constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
+
+  constructor(config = { saml: {}, session: {}}) {
+      // Get config values from env, but override if setting directly in constructor config
     this.config = {
       ...config,
       saml: {
-        serviceProviderLoginUrl:
-          process.env.WEBLOGIN_AUTH_SAML_SP_URL || '/saml',
-        entityId:
-          process.env.WEBLOGIN_AUTH_SAML_ENTITY_ID ||
-          'https://github.com/su-sws/adapt-stripe',
-        cert: process.env.WEBLOGIN_AUTH_SAML_CERT,
+        forceAuthn: process.env.WEBLOGIN_AUTH_FORCE_LOGIN || false,
+        idp: process.env.WEBLOGIN_AUTH_IDP || 'prod',
+        path: process.env.WEBLOGIN_AUTH_CALLBACK_PATH || '/api/auth/callback',
+        protocol: process.env.WEBLOGIN_AUTH_PROTOCOL || 'https://',
+        logoutUrl: process.env.WEBLOGIN_AUTH_LOGOUT_PATH || '/api/auth/logout',
+        host: process.env.WEBLOGIN_AUTH_HOST || 'idp.stanford.edu',
+        issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://idp.stanford.edu/',
+        passive: process.env.WEBLOGIN_AUTH_PASSIVE || false,
         decryptionCert: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT,
-        decryptionKey: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
-        returnTo: process.env.WEBLOGIN_AUTH_SAML_RETURN_URL,
+        decryptionPvk: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
+        returnTo: process.env.WEBLOGIN_AUTH_SAML_RETURN_URL || '',
         returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN || '',
         returnToPath: process.env.WEBLOGIN_AUTH_SAML_RETURN_PATH || '',
         ...(config.saml || {}),
@@ -40,39 +46,47 @@ export class WebLoginAuth {
         name: process.env.WEBLOGIN_AUTH_SESSION_NAME || 'weblogin-auth',
         expiresIn: process.env.WEBLOGIN_AUTH_SESSION_EXPIRES_IN || '12h',
         logoutRedirectUrl: process.env.WEBLOGIN_AUTH_SESSION_LOGOUT_URL || '/',
-        unauthorizedRedirectUrl:
-          process.env.WEBLOGIN_AUTH_SESSION_UNAUTHORIZED_URL,
+        unauthorizedRedirectUrl: process.env.WEBLOGIN_AUTH_SESSION_UNAUTHORIZED_URL,
         ...(config.session || {}),
       },
     };
 
-
     // Configure passport for SAML
     this.saml = new SamlStrategy(
       {
-        protocol: 'http://',
-        idp: 'prod',
-        entityId: this.config.saml.entityId,
-        path: this.config.saml.serviceProviderLoginUrl,
-        loginPath: this.config.saml.serviceProviderLoginUrl,
+        protocol: this.config.saml.protocol,
+        path: this.config.saml.path,
+        host: this.config.saml.host,
+        issuer: this.config.saml.issuer,
+        logoutUrl: this.config.saml.loginPath,
+        forceAuthn: this.config.saml.forceAuthn,
+        passive: this.config.saml.passive,
+        decryptionPvk: this.config.saml.decryptionPvk,
+        entryPoint: idps[this.config.saml.idp].entryPoint,
+        cert: idps[this.config.saml.idp].cert,
         passReqToCallback: true,
-        passport: passport,
-        decryptionPvk: this.config.saml.decryptionKey,
-        decryptionCert: this.config.saml.decryptionCert,
+        wantAssertionsSigned: true,
+        signatureAlgorithm: 'sha256',
+        identifierFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
+        acceptedClockSkewMs: 60000,
+        skipRequestCompression: false,
+        disableRequestedAuthnContext: true,
+        validateInResponseTo: true,
+        authnRequestBinding: 'HTTP-POST',
       },
       (req, profile, done) => {
+        console.log(profile);
         const user = {
           userName: profile.userName as string,
-          email: (profile.email || profile.mail) as string,
-          displayName: profile.displayName as string,
-          SUID: profile.uid as string,
-          affiliation: profile.suAffiliation as string,
+          email: profile.email || profile.nameID,
+          firstName: profile.firstName as string,
+          lastName: profile.lastName as string,
+          SUID: (profile.SUID || profile.suid) as string,
+          encodedSUID: profile.encodedSUID as string,
         };
 
         try {
-          (req as SamlUserRequest).samlRelayState = JSON.parse(
-            req.body.RelayState
-          );
+          (req as SamlUserRequest).samlReayState = JSON.parse(req.body.RelayState);
         } catch (err) {
           // I guess the relayState wasn't that great...
           console.log('Unable to parse samlRelayState', err);
@@ -85,33 +99,17 @@ export class WebLoginAuth {
   }
 
   /**
-   * Redirect request to SAML idp with configured query params
+   * Pass the strategy.
    */
-  public initiate = (): Handler => (req, res) => {
-    // Pass along final destination
-    const final = req.query.final_destination as string;
-    const isMoreThanUrlPath =
-      final && /^(https?:\/\/)?([a-z0-9.-]+)/.test(final);
+  public getStrategy = () => {
+    return this.saml;
+  };
 
-    if (isMoreThanUrlPath) {
-      return res
-        .status(400)
-        .json(
-          'Invalid "final_destination" parameter. Must be be local url path part'
-        );
-    }
-
-    const returnTo =
-      this.config.saml.returnTo ||
-      `${this.config.saml.returnToOrigin}${this.config.saml.returnToPath}`;
-    const params = {
-      entityId: this.config.saml.entityId,
-      return_to: returnTo,
-      // Pass final_destination through
-      ...(final ? { final_destination: final } : {}),
-    };
-    const query = new URLSearchParams(params).toString();
-    return res.redirect(`${this.config.saml.serviceProviderLoginUrl}?${query}`);
+  /**
+   * Pass the strategy.
+   */
+  public getStrategyName = () => {
+    return this.saml.name;
   };
 
   // Passport initialize must be used prior to other passport middlewares
@@ -122,47 +120,43 @@ export class WebLoginAuth {
    * Handle POSTed saml assertion and create user session
    * NOTE: Must use initilaize middleware prior to authenticate
    */
-  public authenticateSaml = () =>
-    passport.authenticate(this.saml.name, { session: false });
+  public authenticateSaml = () => passport.authenticate(this.saml.name, { session: false });
 
-  public signToken = async (user: AuthUser) =>
-    signJWT(user, {
-      secret: this.config.session.secret,
-      expiresIn: this.config.session.expiresIn,
-    });
+  public signToken = async (user: AuthUser) => signJWT(user, {
+    secret: this.config.session.secret,
+    expiresIn: this.config.session.expiresIn,
+  });
 
-  public verifyToken = async (token: string) =>
-    verifyToken(token, { secret: this.config.session.secret });
+  public verifyToken = async (token: string) => verifyToken(token, { secret: this.config.session.secret });
 
   /**
    * Create signed auth session by setting user jwt to cookie
    */
-  public createSession =
-    () => async (req: SamlUserRequest, res: Response, next: NextFunction) => {
-      if (!req.user) {
-        throw new Error('Unauthorized');
-      }
+  public createSession = () => async (req: SamlUserRequest, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new Error('Unauthorized');
+    }
 
-      const token = await this.signToken(req.user);
-      res.setHeader('Set-Cookie', [
-        // HTTP Only cookie includes session token
-        serialize(this.config.session.name, token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV !== 'development',
-          sameSite: 'strict',
-          path: '/',
-        }),
-        // client side cookie to alert frontend that session is active
-        serialize(`${this.config.session.name}-session`, 'active', {
-          httpOnly: false,
-          secure: false,
-          sameSite: 'strict',
-          path: '/',
-        }),
-      ]);
+    const token = await this.signToken(req.user);
+    res.setHeader('Set-Cookie', [
+      // HTTP Only cookie includes session token
+      serialize(this.config.session.name, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'strict',
+        path: '/',
+      }),
+      // client side cookie to alert frontend that session is active
+      serialize(`${this.config.session.name}-session`, 'active', {
+        httpOnly: false,
+        secure: false,
+        sameSite: 'strict',
+        path: '/',
+      }),
+    ]);
 
-      next();
-    };
+    next();
+  };
 
   /**
    * Destory the local auth session
@@ -211,43 +205,35 @@ export class WebLoginAuth {
    * Authorize requests against against valid jwt tokens
    * Attach authorized user to req object
    */
-  public authorize =
-    (options: AuthorizeOptions = {}): Handler =>
-    async (req, res, next) => {
-      try {
-        const user = await this.validateSessionCookie(req);
-        req.user = user;
+  public authorize = (options: AuthorizeOptions = {}): Handler => async (req, res, next) => {
+    try {
+      const user = await this.validateSessionCookie(req);
+      req.user = user;
+      next();
+    } catch (error) {
+      // Allow unauthorized requests through
+      if (options.allowUnauthorized) {
         next();
-      } catch (error) {
-        // Allow unauthorized requests through
-        if (options.allowUnauthorized) {
-          next();
+      } else {
+        // Check for unauthorized redirect
+        const redirectUrl = options.redirectUrl || this.config.session.unauthorizedRedirectUrl;
+        if (redirectUrl) {
+          res.redirect(redirectUrl);
         } else {
-          // Check for unauthorized redirect
-          const redirectUrl =
-            options.redirectUrl || this.config.session.unauthorizedRedirectUrl;
-          if (redirectUrl) {
-            res.redirect(redirectUrl);
-          } else {
-            // Default 401 response
-            res.status(401).json('UNAUTHORIZED');
-          }
+          // Default 401 response
+          res.status(401).json('UNAUTHORIZED');
         }
       }
-    };
+    }
+  };
 
   /**
    * Validate session cookie on request
    */
-  public validateSessionCookie = async <
-    T extends { cookies?: Record<string, any> }
-  >(
-    req: T
-  ) =>
-    validateSessionCookie(req, {
-      secret: this.config.session.secret,
-      name: this.config.session.name,
-    });
+  public validateSessionCookie = async <T extends { cookies?: Record<string, any> }>(req: T) => validateSessionCookie(
+    req,
+    { secret: this.config.session.secret, name: this.config.session.name }
+  );
 
   /**
    * Helper to extract the saml relay final destination url from req object
@@ -258,6 +244,7 @@ export class WebLoginAuth {
       const relayState = req.samlRelayState;
       const finalDest = relayState.finalDestination || null;
       return finalDest;
+
     } catch (err) {
       // I guess the relayState wasn't that great...
       console.log('Unable to parse samlRelayState', err);

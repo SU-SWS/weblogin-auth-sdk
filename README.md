@@ -1,7 +1,7 @@
 # Adapt Auth SDK
 
 The AdaptAuth SDK provides all the functionality to easily integrate your Javascript
-web applications with our Stanford SAML federated identity provider. 
+web applications with our Stanford SAML federated identity provider.
 
 ## Usage
 
@@ -30,8 +30,6 @@ The easiest way to configure AdaptAuth is by setting environment variables
 ```bash
 # adapt-sso-sp SAML service provider login url (REQUIRED)
 ADAPT_AUTH_SAML_SP_URL="https://adapt-sso-uat.stanford.edu/api/sso/login"
-# adapt-sso-sp SAML registry entity id (REQUIRED)
-ADAPT_AUTH_SAML_ENTITY="my-saml-app-entity"
 # SAML signing pem certificate (REQUIRED)
 ADAPT_AUTH_SAML_CERT="PEM used for saml document signing"
 # Private key used to decrypt encrypted SAML assertions (optional)
@@ -45,7 +43,7 @@ ADAPT_AUTH_SAML_RETURN_PATH="/auth/saml"
 # Secret used for signing/verifying local session jwts (REQUIRED)
 ADAPT_AUTH_SESSION_SECRET="some-signing-secret"
 # Name for local session cookie (optional)
-ADAPT_AUTH_SESSION_NAME="adapt-auth"
+ADAPT_AUTH_SESSION_NAME="weblogin-auth"
 # expiresIn / maxAge for session tokens
 ADAPT_AUTH_SESSION_EXPIRES_IN="24h"
 # Local url to redirect to after logging out of session (optional) defaults to "/"
@@ -224,11 +222,11 @@ Helper function to extract possible `finalDestination` url from SAML relay state
 
 
 ### Caveats when using on Netlify-hosted sites
-If you are using https://github.com/bencao/netlify-plugin-inline-functions-env to inline your environment variables, 
-be aware that it only replaces process.env.[variable_name] usages for files inside your functions directory. 
+If you are using https://github.com/bencao/netlify-plugin-inline-functions-env to inline your environment variables,
+be aware that it only replaces process.env.[variable_name] usages for files inside your functions directory.
 
 Because of this, you should not rely on the singleton object or the defaults provided by the constructor.
-You'll need to initate an AdaptAuth instance inside a file in your functions directory, and pass in the full list of options. 
+You'll need to initate an AdaptAuth instance inside a file in your functions directory, and pass in the full list of options.
 It's fine to copy-paste these from the constructor in src/AdaptAuth.ts as a starting point, as shown below:
 
 ```

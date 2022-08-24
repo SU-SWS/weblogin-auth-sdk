@@ -1,4 +1,4 @@
-const url = require('url');
+import url from 'node:url';
 const idps = {
   itlab: {
     entityID: 'https://weblogin.itlab.stanford.edu/idp/shibboleth',
@@ -113,16 +113,6 @@ const idps = {
     ].join(' '),
   },
 };
-
-// entityID as alias
-Object.keys(idps).forEach(function (k) {
-  var idp = idps[k],
-    hostname = url.parse(idp.entityID).hostname;
-
-  idps[idp.entityID] = idp;
-  idps[hostname] = idp;
-  idps[hostname.replace(/\.stanford\.edu$/, '')] = idp;
-});
 
 // create a 'stanford' alias for the production IdP
 idps['stanford'] = idps['prod'];

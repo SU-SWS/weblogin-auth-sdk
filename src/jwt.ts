@@ -8,9 +8,9 @@ export interface JWTConfig {
 }
 
 const defaultJwtConfig: JWTConfig = {
-  secret: process.env.ADAPT_AUTH_SESSION_SECRET || '',
-  expiresIn: process.env.ADAPT_AUTH_SESSION_EXPIRES_IN || '12h',
-  name: process.env.ADAPT_AUTH_SESSION_NAME || 'adapt-auth',
+  secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET || '',
+  expiresIn: process.env.WEBLOGIN_AUTH_SESSION_EXPIRES_IN || '12h',
+  name: process.env.WEBLOGIN_AUTH_SESSION_NAME || 'weblogin-auth',
 };
 
 export const signJWT = async (user: AuthUser, config: JWTConfig = {}) => {

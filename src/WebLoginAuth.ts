@@ -21,17 +21,17 @@ export class WebLoginAuth {
 
   // constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
 
-  constructor(config = { saml: {}, session: {}}) {
+  constructor(config) {
       // Get config values from env, but override if setting directly in constructor config
     this.config = {
       ...config,
       saml: {
+        name: 'weblogin',
         forceAuthn: process.env.WEBLOGIN_AUTH_FORCE_LOGIN || false,
         idp: process.env.WEBLOGIN_AUTH_IDP || 'prod',
-        path: process.env.WEBLOGIN_AUTH_CALLBACK_PATH || '/api/auth/callback',
-        protocol: process.env.WEBLOGIN_AUTH_PROTOCOL || 'https://',
+        callbackUrl: process.env.WEBLOGIN_AUTH_ACS_URL || 'http://localhost:3000/auth',
+        path: process.env.WEBLOGIN_AUTH_CALLBACK_PATH || '/auth',
         logoutUrl: process.env.WEBLOGIN_AUTH_LOGOUT_PATH || '/api/auth/logout',
-        host: process.env.WEBLOGIN_AUTH_HOST || 'idp.stanford.edu',
         issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://idp.stanford.edu/',
         passive: process.env.WEBLOGIN_AUTH_PASSIVE || false,
         decryptionCert: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT,
@@ -39,7 +39,7 @@ export class WebLoginAuth {
         returnTo: process.env.WEBLOGIN_AUTH_SAML_RETURN_URL || '',
         returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN || '',
         returnToPath: process.env.WEBLOGIN_AUTH_SAML_RETURN_PATH || '',
-        ...(config.saml || {}),
+        ...(config?.saml || {}),
       },
       session: {
         secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET || '',
@@ -47,68 +47,52 @@ export class WebLoginAuth {
         expiresIn: process.env.WEBLOGIN_AUTH_SESSION_EXPIRES_IN || '12h',
         logoutRedirectUrl: process.env.WEBLOGIN_AUTH_SESSION_LOGOUT_URL || '/',
         unauthorizedRedirectUrl: process.env.WEBLOGIN_AUTH_SESSION_UNAUTHORIZED_URL,
-        ...(config.session || {}),
+        ...(config?.session || {}),
       },
     };
 
     // Configure passport for SAML
     this.saml = new SamlStrategy(
       {
-        protocol: this.config.saml.protocol,
+        name:  this.config.saml.name,
         path: this.config.saml.path,
-        host: this.config.saml.host,
+        callbackUrl: this.config.saml.callbackUrl,
         issuer: this.config.saml.issuer,
         logoutUrl: this.config.saml.loginPath,
         forceAuthn: this.config.saml.forceAuthn,
-        passive: this.config.saml.passive,
         decryptionPvk: this.config.saml.decryptionPvk,
         entryPoint: idps[this.config.saml.idp].entryPoint,
         cert: idps[this.config.saml.idp].cert,
-        passReqToCallback: true,
         wantAssertionsSigned: true,
         signatureAlgorithm: 'sha256',
         identifierFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
         acceptedClockSkewMs: 60000,
         skipRequestCompression: false,
-        disableRequestedAuthnContext: true,
         validateInResponseTo: true,
-        authnRequestBinding: 'HTTP-POST',
       },
       (req, profile, done) => {
         console.log(profile);
-        const user = {
-          userName: profile.userName as string,
-          email: profile.email || profile.nameID,
-          firstName: profile.firstName as string,
-          lastName: profile.lastName as string,
-          SUID: (profile.SUID || profile.suid) as string,
-          encodedSUID: profile.encodedSUID as string,
-        };
-
-        try {
-          (req as SamlUserRequest).samlReayState = JSON.parse(req.body.RelayState);
-        } catch (err) {
-          // I guess the relayState wasn't that great...
-          console.log('Unable to parse samlRelayState', err);
-        }
-
+        const user = {name: 'John Doe' };
         done(null, user);
       }
     );
-    passport.use(this.saml);
   }
 
   /**
    * Pass the strategy.
+   *
+   * For use when you want the strategy for your own passport implementation.
    */
-  public getStrategy = () => {
+  public getStrategy = ():SamlStrategy => {
     return this.saml;
   };
 
   /**
-   * Pass the strategy.
+   * Pass the strategy name.
+   *
+   * Easy, peasy get the namesey.
    */
-  public getStrategyName = () => {
+  public getStrategyName = ():string => {
     return this.saml.name;
   };
 
@@ -122,11 +106,21 @@ export class WebLoginAuth {
    */
   public authenticateSaml = () => passport.authenticate(this.saml.name, { session: false });
 
+  /**
+   *
+   * @param user
+   * @returns
+   */
   public signToken = async (user: AuthUser) => signJWT(user, {
     secret: this.config.session.secret,
     expiresIn: this.config.session.expiresIn,
   });
 
+  /**
+   *
+   * @param token
+   * @returns
+   */
   public verifyToken = async (token: string) => verifyToken(token, { secret: this.config.session.secret });
 
   /**
@@ -253,4 +247,4 @@ export class WebLoginAuth {
 }
 
 // Singleton client for default consumption
-export const auth = new WebLoginAuth();
+export const auth = new WebLoginAuth({});

@@ -12,16 +12,19 @@ import {
 } from './types';
 import { signJWT, validateSessionCookie, verifyToken } from './jwt';
 import idps from './lib/idps';
-import { attrmap } from './lib/attributes';
+import { attrMapper } from './lib/attributes';
 
 export class WebLoginAuth {
   public config;
 
   private saml: SamlStrategy;
 
+  private psp;
+
   // constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
 
   constructor(config) {
+
       // Get config values from env, but override if setting directly in constructor config
     this.config = {
       ...config,
@@ -68,14 +71,15 @@ export class WebLoginAuth {
         identifierFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
         acceptedClockSkewMs: 60000,
         skipRequestCompression: false,
-        validateInResponseTo: true,
+        passReqToCallback: true,
       },
       (req, profile, done) => {
-        console.log(profile);
-        const user = {name: 'John Doe' };
-        done(null, user);
+        const usr = attrMapper(profile);
+        done(null, usr);
       }
     );
+
+    passport.use(this.saml);
   }
 
   /**
@@ -244,6 +248,13 @@ export class WebLoginAuth {
       console.log('Unable to parse samlRelayState', err);
     }
   };
+
+  /**
+   * generateServiceProviderMetadata
+   */
+  public generateServiceProviderMetadata = () => {
+    return this.saml.generateServiceProviderMetadata(this.config.saml.decryptionCert, this.config.saml.cert);
+  }
 }
 
 // Singleton client for default consumption

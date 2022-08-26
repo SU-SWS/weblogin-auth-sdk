@@ -72,11 +72,16 @@ export interface WebLoginAuthConfig {
  * Auth user parsed from SAML profile or jwt
  */
 export interface AuthUser {
-  userName: string;
-  email: string;
-  digitalName?: string;
-  SUID?: string;
-  encodedSUID: string;
+  issuer: string;
+  mail?: string;
+  email?: string;
+  givenName: string;
+  displayName: string;
+  eduPersonAffiliation: string | string[];
+  uid: string;
+  eduPersonPrincipalName: string;
+  eduPersonScopedAffiliation: string;
+  sn: string;
 }
 
 // Utility type useful for extending http request-like types
@@ -94,14 +99,15 @@ export type AuthUserRequest = WithAuthUser<Request>;
  * SAML RelayState Object
  */
 export interface SamlRelayState {
-  entityId: string;
-  returnTo?: string;
   finalDestination?: string;
   [key: string]: string;
 }
+
 export interface SamlUserReqExtender {
   user: AuthUser;
   samlRelayState: SamlRelayState;
 }
+
 export type WithSamlUser<R extends {}> = R & SamlUserReqExtender;
+
 export type SamlUserRequest = WithSamlUser<Request>;

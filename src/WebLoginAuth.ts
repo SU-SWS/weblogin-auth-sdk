@@ -19,8 +19,6 @@ export class WebLoginAuth {
 
   private saml: SamlStrategy;
 
-  private psp;
-
   // constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
 
   constructor(config) {
@@ -74,8 +72,20 @@ export class WebLoginAuth {
         passReqToCallback: true,
       },
       (req, profile, done) => {
-        const usr = attrMapper(profile);
-        done(null, usr);
+        const user = attrMapper(profile);
+        const account = {
+          issuer: user.issuer,
+          mail: user?.mail,
+          email: user?.email,
+          givenName: user.givenName,
+          displayName: user.displayName,
+          eduPersonAffiliation: user?.eduPersonAffiliation,
+          uid: user.uid,
+          eduPersonPrincipalName: user.eduPersonPrincipalName,
+          eduPersonScopedAffiliation: user.eduPersonScopedAffiliation,
+          sn: user.sn,
+        }
+        done(null, account);
       }
     );
 
@@ -233,16 +243,16 @@ export class WebLoginAuth {
     { secret: this.config.session.secret, name: this.config.session.name }
   );
 
+
   /**
    * Helper to extract the saml relay final destination url from req object
    */
   public getFinalDestination = (req: any) => {
     // Attach relayState to req
     try {
-      const relayState = req.samlRelayState;
+      const relayState = JSON.parse(decodeURIComponent(req.body.RelayState));
       const finalDest = relayState.finalDestination || null;
       return finalDest;
-
     } catch (err) {
       // I guess the relayState wasn't that great...
       console.log('Unable to parse samlRelayState', err);

@@ -30,7 +30,7 @@ export class WebLoginAuth {
         name: 'weblogin',
         forceAuthn: process.env.WEBLOGIN_AUTH_FORCE_LOGIN === 'true' || false,
         idp: process.env.WEBLOGIN_AUTH_IDP || 'prod',
-        callbackUrl: process.env.WEBLOGIN_AUTH_ACS_URL || 'http://localhost:3000/auth',
+        callbackUrl: process.env.WEBLOGIN_AUTH_ACS_URL,
         path: process.env.WEBLOGIN_AUTH_CALLBACK_PATH || '/auth',
         logoutUrl: process.env.WEBLOGIN_AUTH_LOGOUT_PATH || '/api/auth/logout',
         issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://idp.stanford.edu/',

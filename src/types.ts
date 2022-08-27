@@ -62,7 +62,7 @@ export interface WebLoginAuthSamlConfig extends SamlOptions {
   /**
    * Which IDP to use.
    */
-  idp: 'itlab' | 'dev' | 'uat' | 'prod';
+  idp: 'itlab' | 'dev' | 'uat' | 'prod' | string;
 
   /**
    * The ACS full url (Redirect back to your site path)

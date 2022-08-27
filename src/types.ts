@@ -49,15 +49,55 @@ export interface WebLoginAuthSessionConfig {
  */
 export interface WebLoginAuthSamlConfig extends SamlOptions {
 
-  returnTo?: string;
-   /**
-    * Application origin for SAML document POST back
-    */
-  returnToOrigin?: string;
-   /**
-    * Application url path for SAML document POST back
-    */
-  returnToPath?: string;
+  /**
+   * Name of the SAML strategy.
+   */
+  name: string;
+
+  /**
+   * Force the log in even if the user has a session on the IDP?
+   */
+  forceAuthn: boolean;
+
+  /**
+   * Which IDP to use.
+   */
+  idp: 'itlab' | 'dev' | 'uat' | 'prod';
+
+  /**
+   * The ACS full url (Redirect back to your site path)
+   */
+  callbackUrl: string;
+
+  /**
+   * The callback path
+   */
+  path: string;
+
+  /**
+   * The IDP logout URL
+   */
+  logoutUrl: string;
+
+  /**
+   * The EntityID you registered on spdb.
+   */
+  issuer: string;
+
+  /**
+   * Try to log in passively (don't show a login form if no session on IDP)
+   */
+  passive: boolean;
+
+  /**
+   * The decryption certificate
+   */
+  decryptionCert: string;
+
+  /**
+   * The decryption key
+   */
+  decryptionPvk: string;
 }
 
 /**

@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
+import { Passport } from 'passport';
 import { Strategy as SamlStrategy } from 'passport-saml';
 import { serialize } from 'cookie';
 import {
@@ -9,6 +10,7 @@ import {
   AuthUser,
   SamlUserRequest,
   DeepPartial,
+  SamlRelayState,
 } from './types';
 import { signJWT, validateSessionCookie, verifyToken } from './jwt';
 import idps from './lib/idps';
@@ -19,9 +21,7 @@ export class WebLoginAuth {
 
   private saml: SamlStrategy;
 
-  // constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
-
-  constructor(config) {
+  constructor(config: DeepPartial<WebLoginAuthConfig> = {}) {
 
       // Get config values from env, but override if setting directly in constructor config
     this.config = {
@@ -37,9 +37,6 @@ export class WebLoginAuth {
         passive: process.env.WEBLOGIN_AUTH_PASSIVE === 'true' || false,
         decryptionCert: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT,
         decryptionPvk: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
-        returnTo: process.env.WEBLOGIN_AUTH_SAML_RETURN_URL || '',
-        returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN || '',
-        returnToPath: process.env.WEBLOGIN_AUTH_SAML_RETURN_PATH || '',
         ...(config?.saml || {}),
       },
       session: {
@@ -97,8 +94,9 @@ export class WebLoginAuth {
    *
    * For use when you want the strategy for your own passport implementation.
    */
-  public getStrategy = ():SamlStrategy => {
-    return this.saml;
+  public getStrategy = (req, res, next) => {
+    return passport;
+
   };
 
   /**
@@ -108,6 +106,36 @@ export class WebLoginAuth {
    */
   public getStrategyName = ():string => {
     return this.saml.name;
+  };
+
+  /**
+   * Returns the passport object.
+   */
+  public getPassport = ():Passport => {
+    return passport;
+  };
+
+  /**
+   * Triggers a log in event by sending the user to the IDP.
+   */
+  public initiate = (): Handler => (req, res, next) => {
+    // The internal to the destination website path to redirect the user to after login.
+    const { final_destination = '/' } = req.query;
+
+    const isMoreThanUrlPath = final_destination && /^(https?:\/\/)?([a-z0-9.-]+)/.test(final_destination);
+
+    if (isMoreThanUrlPath) {
+      return res.status(400).json('Invalid "final_destination" parameter. Must be be local url path part');
+    }
+
+    // The relay object for the SAML loop.
+    const relayStateObj:SamlRelayState = {
+      finalDestination: final_destination,
+    };
+    req.query.RelayState = relayStateObj;
+    req.query.RelayState = encodeURIComponent(JSON.stringify(relayStateObj));
+
+    next();
   };
 
   // Passport initialize must be used prior to other passport middlewares

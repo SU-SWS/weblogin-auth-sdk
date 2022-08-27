@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 import { Handler, Response, NextFunction } from 'express';
 import * as passport from 'passport';
-import { Passport } from 'passport';
 import { Strategy as SamlStrategy } from 'passport-saml';
 import { serialize } from 'cookie';
 import {
@@ -94,9 +93,8 @@ export class WebLoginAuth {
    *
    * For use when you want the strategy for your own passport implementation.
    */
-  public getStrategy = (req, res, next) => {
-    return passport;
-
+  public getStrategy = (): SamlStrategy => {
+    return this.saml;
   };
 
   /**
@@ -109,16 +107,9 @@ export class WebLoginAuth {
   };
 
   /**
-   * Returns the passport object.
-   */
-  public getPassport = ():Passport => {
-    return passport;
-  };
-
-  /**
    * Triggers a log in event by sending the user to the IDP.
    */
-  public initiate = (): Handler => (req, res, next) => {
+  public initiate = (): Handler => (req: SamlUserRequest, res: Response, next: NextFunction) => {
     // The internal to the destination website path to redirect the user to after login.
     const { final_destination = '/' } = req.query;
 

@@ -10,11 +10,5 @@ jobs:
         run: nvm install
       - name: Install modules
         run: npm ci
-        env:
-          # The following var needs to correspond with what's used in the .npmrc file for fa pro
-          FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FA_NPM_TOKEN }}
       - name: Run ESLint
         run: npm run lint
-        env:
-          # The following var needs to correspond with what's used in the .npmrc file for fa pro
-          FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FA_NPM_TOKEN }}

@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "watch": "tsc --watch",
     "prepare": "npm run build",
     "lint": "eslint \"src/**/*.{ts,tsx.js,jsx}\"",
     "lint:fix": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --quiet --fix",

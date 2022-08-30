@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { SamlOptions } from 'passport-saml/lib/node-saml/types';
 
 // NOTE: This type is duplicated here so we can more easily abstract this module for distribution
 export type DeepPartial<T extends {}> = {
@@ -22,7 +23,7 @@ export interface WebLoginAuthSessionConfig {
    */
   secret: string;
   /**
-   * Name for session cookie. Defaults to 'adapt-auth'
+   * Name for session cookie. Defaults to 'weblogin-auth'
    */
   name: string;
   /**
@@ -46,39 +47,57 @@ export interface WebLoginAuthSessionConfig {
 /**
  * SAML Config
  */
-export interface WebLoginAuthSamlConfig {
+export interface WebLoginAuthSamlConfig extends SamlOptions {
+
   /**
-   * Login entrypoint 
+   * Name of the SAML strategy.
    */
-  serviceProviderLoginUrl: string;
+  name: string;
+
   /**
-   * Login entrypoint Id
+   * Force the log in even if the user has a session on the IDP?
    */
-  entityId: string;
+  forceAuthn: boolean;
+
   /**
-   * SAML public signing verification certificate
+   * Which IDP to use.
    */
-  cert: string | string[];
+  idp: 'itlab' | 'dev' | 'uat' | 'prod' | string;
+
   /**
-   * Public key used to decrypt encrypted SAML assertions
+   * The ACS full url (Redirect back to your site path)
    */
-  decryptionCert?: string;
+  callbackUrl: string;
+
   /**
-   * Private key used to decrypt encrypted SAML assertions
+   * The callback path
    */
-  decryptionKey?: string;
+  path: string;
+
   /**
-   * Absolute application for SAML document POST back
+   * The IDP logout URL
    */
-   returnTo?: string;
-   /**
-    * Application origin for SAML document POST back
-    */
-   returnToOrigin?: string;
-   /**
-    * Application url path for SAML document POST back
-    */
-   returnToPath?: string;
+  logoutUrl: string;
+
+  /**
+   * The EntityID you registered on spdb.
+   */
+  issuer: string;
+
+  /**
+   * Try to log in passively (don't show a login form if no session on IDP)
+   */
+  passive: boolean;
+
+  /**
+   * The decryption certificate
+   */
+  decryptionCert: string;
+
+  /**
+   * The decryption key
+   */
+  decryptionPvk: string;
 }
 
 /**
@@ -93,11 +112,16 @@ export interface WebLoginAuthConfig {
  * Auth user parsed from SAML profile or jwt
  */
 export interface AuthUser {
-  userName: string;
-  email: string;
-  digitalName?: string;
-  SUID?: string;
-  encodedSUID: string;
+  issuer: string;
+  mail?: string;
+  email?: string;
+  givenName: string;
+  displayName: string;
+  eduPersonAffiliation: string | string[];
+  uid: string;
+  eduPersonPrincipalName: string;
+  eduPersonScopedAffiliation: string;
+  sn: string;
 }
 
 // Utility type useful for extending http request-like types
@@ -115,14 +139,15 @@ export type AuthUserRequest = WithAuthUser<Request>;
  * SAML RelayState Object
  */
 export interface SamlRelayState {
-  entityId: string;
-  returnTo?: string;
   finalDestination?: string;
   [key: string]: string;
 }
+
 export interface SamlUserReqExtender {
   user: AuthUser;
   samlRelayState: SamlRelayState;
 }
+
 export type WithSamlUser<R extends {}> = R & SamlUserReqExtender;
+
 export type SamlUserRequest = WithSamlUser<Request>;

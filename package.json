@@ -1,6 +1,6 @@
 {
   "name": "weblogin-auth-sdk",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Provides all the functionality needed to easily integrate your Javascript web applications with Stanford SAML federated identity provider.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

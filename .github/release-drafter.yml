@@ -19,15 +19,6 @@ version-resolver:
   patch:
     labels:
       - 'patch'
-  alpha:
-    labels:
-      - 'alpha'
-  beta:
-    labels:
-      - 'beta'
-  rc:
-    labels:
-      - 'rc'
   default: patch
 template: |
   ## Release Notes:

@@ -9,7 +9,26 @@ categories:
       - 'fix'
   - title: '🧰 Maintenance'
     label: 'task'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  alpha:
+    labels:
+      - 'alpha'
+  beta:
+    labels:
+      - 'beta'
+  rc:
+    labels:
+      - 'rc'
+  default: patch
 template: |
   ## Release Notes:
-
   $CHANGES

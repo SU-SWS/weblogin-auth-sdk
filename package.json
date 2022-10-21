@@ -30,7 +30,7 @@
     "cookie": "^0.4.1",
     "express": "^4.17.2",
     "express-session": "^1.17.3",
-    "jose": "^4.8.0",
+    "jose": "^4.9.2",
     "passport": "^0.6.0",
     "passport-saml": "^3.2.1",
     "url": "^0.11.0",

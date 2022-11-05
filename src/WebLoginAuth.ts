@@ -51,21 +51,16 @@ export class WebLoginAuth {
     // Configure passport for SAML
     this.saml = new SamlStrategy(
       {
-        name:  this.config.saml.name,
-        path: this.config.saml.path,
-        callbackUrl: this.config.saml.callbackUrl,
-        issuer: this.config.saml.issuer,
+        ...this.config.saml,
         logoutUrl: this.config.saml.loginPath,
-        forceAuthn: this.config.saml.forceAuthn,
-        decryptionPvk: this.config.saml.decryptionPvk,
-        entryPoint: idps[this.config.saml.idp].entryPoint,
-        cert: idps[this.config.saml.idp].cert,
+        entryPoint: idps_1.default[this.config.saml.idp].entryPoint,
+        cert: idps_1.default[this.config.saml.idp].cert,
         wantAssertionsSigned: true,
         signatureAlgorithm: 'sha256',
         identifierFormat: 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
         acceptedClockSkewMs: 60000,
         skipRequestCompression: false,
-        passReqToCallback: true,
+        passReqToCallback: true
       },
       (req, profile, done) => {
         const user = attrMapper(profile);

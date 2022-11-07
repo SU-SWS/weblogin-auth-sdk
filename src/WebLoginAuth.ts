@@ -51,13 +51,7 @@ export class WebLoginAuth {
     // Configure passport for SAML
     this.saml = new SamlStrategy(
       {
-        name:  this.config.saml.name,
-        path: this.config.saml.path,
-        callbackUrl: this.config.saml.callbackUrl,
-        issuer: this.config.saml.issuer,
         logoutUrl: this.config.saml.loginPath,
-        forceAuthn: this.config.saml.forceAuthn,
-        decryptionPvk: this.config.saml.decryptionPvk,
         entryPoint: idps[this.config.saml.idp].entryPoint,
         cert: idps[this.config.saml.idp].cert,
         wantAssertionsSigned: true,
@@ -66,6 +60,7 @@ export class WebLoginAuth {
         acceptedClockSkewMs: 60000,
         skipRequestCompression: false,
         passReqToCallback: true,
+        ...this.config.saml,
       },
       (req, profile, done) => {
         const user = attrMapper(profile);
@@ -80,7 +75,7 @@ export class WebLoginAuth {
           eduPersonPrincipalName: user.eduPersonPrincipalName,
           eduPersonScopedAffiliation: user.eduPersonScopedAffiliation,
           sn: user.sn,
-        }
+        };
         done(null, account);
       }
     );
@@ -283,7 +278,7 @@ export class WebLoginAuth {
    */
   public generateServiceProviderMetadata = () => {
     return this.saml.generateServiceProviderMetadata(this.config.saml.decryptionCert, this.config.saml.cert);
-  }
+  };
 }
 
 // Singleton client for default consumption

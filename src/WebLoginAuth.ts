@@ -51,7 +51,7 @@ export class WebLoginAuth {
     // Configure passport for SAML
     this.saml = new SamlStrategy(
       {
-        logoutUrl: this.config.saml.loginPath,,,
+        logoutUrl: this.config.saml.loginPath,
         entryPoint: idps[this.config.saml.idp].entryPoint,
         cert: idps[this.config.saml.idp].cert,
         wantAssertionsSigned: true,

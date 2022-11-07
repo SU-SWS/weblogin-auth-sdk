@@ -60,7 +60,7 @@ export class WebLoginAuth {
         acceptedClockSkewMs: 60000,
         skipRequestCompression: false,
         passReqToCallback: true,
-        ...this.config.saml
+        ...this.config.saml,
       },
       (req, profile, done) => {
         const user = attrMapper(profile);
@@ -75,7 +75,7 @@ export class WebLoginAuth {
           eduPersonPrincipalName: user.eduPersonPrincipalName,
           eduPersonScopedAffiliation: user.eduPersonScopedAffiliation,
           sn: user.sn,
-        }
+        };
         done(null, account);
       }
     );
@@ -278,7 +278,7 @@ export class WebLoginAuth {
    */
   public generateServiceProviderMetadata = () => {
     return this.saml.generateServiceProviderMetadata(this.config.saml.decryptionCert, this.config.saml.cert);
-  }
+  };
 }
 
 // Singleton client for default consumption

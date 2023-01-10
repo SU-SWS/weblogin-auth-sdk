@@ -56,8 +56,9 @@ export const validateSessionCookie = async <T extends { cookies?: Record<string,
   let token;
 
   try {
-    // Cookie accessor pattern for Next 12 middleware.
-    token = req.cookies.get(name);
+    // Cookie accessor pattern for Next 12+ middleware.
+    const cookieInfo = req.cookies.get(name);
+    token = cookieInfo?.value;
   }
   // Cookie access for Next 11 and other frameworks that use Express cookie-parser.
   catch(err) {

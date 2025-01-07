@@ -121,7 +121,7 @@ export class WebLoginAuth {
     req.query.RelayState = relayStateObj;
     req.query.RelayState = encodeURIComponent(JSON.stringify(relayStateObj));
 
-    next();
+    await next();
   };
 
   // Passport initialize must be used prior to other passport middlewares
@@ -177,7 +177,7 @@ export class WebLoginAuth {
       }),
     ]);
 
-    next();
+    await next();
   };
 
   /**
@@ -231,11 +231,11 @@ export class WebLoginAuth {
     try {
       const user = await this.validateSessionCookie(req);
       req.user = user;
-      next();
+      await next();
     } catch (error) {
       // Allow unauthorized requests through
       if (options.allowUnauthorized) {
-        next();
+        await next();
       } else {
         // Check for unauthorized redirect
         const redirectUrl = options.redirectUrl || this.config.session.unauthorizedRedirectUrl;

@@ -121,7 +121,7 @@ export class WebLoginAuth {
     req.query.RelayState = relayStateObj;
     req.query.RelayState = encodeURIComponent(JSON.stringify(relayStateObj));
 
-    await next();
+    next();
   };
 
   // Passport initialize must be used prior to other passport middlewares

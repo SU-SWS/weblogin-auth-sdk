@@ -510,7 +510,7 @@ export async function getUserIdFromRequest(
  * @returns Promise resolving to user ID or null
  */
 export async function getUserIdFromCookie(
-  cookieData: string | Record<string, any>,
+  cookieData: string | Record<string, unknown>,
   secret: string
 ): Promise<string | null> {
   if (!cookieData || !secret) return null;
@@ -518,7 +518,7 @@ export async function getUserIdFromCookie(
   try {
     // If it's already an object, try to read it directly
     if (typeof cookieData === 'object') {
-      return (cookieData as any).user?.id || null;
+      return (cookieData as { user?: { id?: string } }).user?.id || null;
     }
 
     // If it's a string, try to decrypt it
@@ -534,7 +534,7 @@ export async function getUserIdFromCookie(
     }
 
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

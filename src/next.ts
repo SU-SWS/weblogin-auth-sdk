@@ -20,10 +20,6 @@ import { cookies } from 'next/headers';
 import { SAMLProvider } from './saml.js';
 import { SessionManager, CookieStore, CookieOptions } from './session.js';
 import {
-  RequiredSamlConfig,
-  OptionalSamlConfig,
-  RequiredSessionConfig,
-  OptionalSessionConfig,
   SessionConfig,
   User,
   Session,
@@ -394,8 +390,8 @@ export class WebLoginNext {
    * @param handler - Route handler function
    * @returns Wrapped handler function
    */
-  auth(handler: (req: Request, ctx: any) => Promise<Response>) {
-    return async (req: Request, ctx: any) => {
+  auth(handler: (req: Request, ctx: Record<string, unknown>) => Promise<Response>) {
+    return async (req: Request, ctx: Record<string, unknown>) => {
       const session = await this.getSession(req);
       const user = session?.user || null;
       const isAuthenticated = !!session;

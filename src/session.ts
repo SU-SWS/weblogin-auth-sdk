@@ -526,7 +526,10 @@ export class SessionManager {
  * @param res - Express Response object
  * @returns CookieStore implementation for Express
  */
-export function createExpressCookieStore(req: any, res: any): CookieStore {
+export function createExpressCookieStore(
+  req: { cookies?: Record<string, string> },
+  res: { cookie: (name: string, value: string, options?: CookieOptions) => void; clearCookie: (name: string) => void }
+): CookieStore {
   return {
     get: (name: string) => {
       const value = req.cookies?.[name];

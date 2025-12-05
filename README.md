@@ -1,7 +1,7 @@
 # Weblogin Auth SDK
 
 The WebLoginAuth SDK provides all the functionality to easily integrate your Javascript
-web applications with our Stanford SAML federated identity provider.
+web applications with our Stanford SAML federated identity provider. It is a Framework-Agnostic authentication library.
 
 ## Usage
 
@@ -180,6 +180,20 @@ handler
 
 export default handler;
 ```
+
+### Usage with Next.js App Router
+
+For Next.js App Router applications, use the dedicated entry point `adapt-auth-sdk/next`. This ensures optimal bundle size and compatibility with Server Components.
+
+```typescript
+import { createAdaptNext } from 'adapt-auth-sdk/next';
+
+const auth = createAdaptNext({
+  // ... configuration
+});
+```
+
+See [docs/examples/nextjs-separate-import.md](docs/examples/nextjs-separate-import.md) for more details.
 
 ## API
 ### `WebLoginAuth.initiate() + WebLoginAuth.authenticate()`

@@ -1,0 +1,419 @@
+/**
+ * SAML 2.0 authentication provider for Stanford WebLogin
+ *
+ * This module provides SAML Service Provider (SP) functionality for integrating
+ * with Stanford's Identity Provider. It handles:
+ *
+ * - SP-initiated SAML authentication flows
+ * - AuthnRequest generation with RelayState
+ * - SAML Response validation and signature verification
+ * - User profile mapping from SAML attributes
+ * - Secure returnTo URL handling
+ *
+ * The implementation uses @node-saml/node-saml for SAML protocol handling.
+ *
+ * @module saml
+ */
+
+import { SAML, SamlConfig as NodeSamlConfig } from '@node-saml/node-saml';
+import {
+  SamlConfig,
+  SAMLProfile,
+  SAMLResponse,
+  LoginOptions,
+  AuthenticateOptions,
+  User,
+  Logger,
+  RelayStatePayload,
+  AuthError,
+} from './types.js';
+import { AuthUtils } from './utils.js';
+import { DefaultLogger } from './logger.js';
+
+/**
+ * SAML authentication provider for Stanford WebLogin
+ *
+ * Handles the complete SAML Service Provider flow:
+ * 1. Generate AuthnRequest and redirect to Stanford IdP
+ * 2. Receive and validate SAML Response from IdP
+ * 3. Map SAML attributes to user profile
+ * 4. Handle RelayState for returnTo functionality
+ *
+ * Features:
+ * - SP-initiated authentication
+ * - RelayState-based returnTo URL handling
+ * - Configurable certificate validation
+ * - Stanford-specific attribute mapping
+ * - Comprehensive error handling and logging
+ */
+export class SAMLProvider {
+  private provider: SAML;
+  private config: Required<SamlConfig>;
+  private logger: Logger;
+
+  /**
+   * Create a new SAML authentication provider
+   *
+   * Initializes the SAML provider with configuration validation and sensible defaults.
+   * Environment variables are used as fallbacks for configuration options.
+   *
+   * @param config - SAML configuration (required and optional settings)
+   * @param logger - Optional logger instance (defaults to DefaultLogger)
+   *
+   * @throws {AuthError} If required configuration is missing or invalid
+   */
+  constructor(config: SamlConfig, logger?: Logger) {
+    this.logger = logger || new DefaultLogger();
+
+    // Build configuration with defaults and environment variable fallbacks
+    const samlConfig = {
+      // Required fields (must be provided)
+      issuer: config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || process.env.WEBLOGIN_AUTH_SAML_ENTITY,
+      idpCert: config.idpCert || process.env.WEBLOGIN_AUTH_SAML_CERT,
+      returnToOrigin: config.returnToOrigin || process.env.WEBLOGIN_AUTH_ACS_URL_ORIGIN || process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN,
+
+      // Optional fields with sensible defaults
+      audience: config.audience || `https://${config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || 'weblogin'}.stanford.edu`,
+      privateKey: config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY || config.idpCert || process.env.WEBLOGIN_AUTH_SAML_CERT || '',
+      decryptionPvk: config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY || '',
+
+      // IDP Entry Point
+      entryPoint: config.entryPoint || process.env.WEBLOGIN_AUTH_IDP_ENTRY_POINT || 'https://idp.stanford.edu/idp/profile/SAML2/Redirect/SSO',
+
+      returnToPath: config.returnToPath || process.env.WEBLOGIN_AUTH_CALLBACK_PATH || '/api/auth/callback',
+
+      // RelayState configuration with defaults
+      includeReturnTo: config.includeReturnTo ?? true,
+
+      // SAML protocol settings with secure defaults
+      signatureAlgorithm: config.signatureAlgorithm || 'sha256',
+      identifierFormat: config.identifierFormat || 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
+      allowCreate: config.allowCreate ?? false,
+      wantAssertionsSigned: config.wantAssertionsSigned ?? true,
+      wantAuthnResponseSigned: config.wantAuthnResponseSigned ?? true,
+      acceptedClockSkewMs: config.acceptedClockSkewMs ?? 60000,
+
+      // Additional parameters with defaults
+      additionalParams: config.additionalParams || {},
+      additionalAuthorizeParams: config.additionalAuthorizeParams || {},
+    };
+
+    // Store the merged configuration
+    this.config = samlConfig as Required<SamlConfig>;
+
+    // Validate required configuration
+    this.validateConfig();
+
+    // Construct callback URL
+    const callbackUrl = new URL(this.config.returnToPath, this.config.returnToOrigin).toString();
+
+    // Create SAML provider with compatible config
+    const nodesamlConfig = {
+      entryPoint: samlConfig.entryPoint,
+      issuer: samlConfig.issuer,
+      idpCert: samlConfig.idpCert,
+      audience: samlConfig.audience,
+      privateKey: samlConfig.privateKey,
+      decryptionPvk: samlConfig.decryptionPvk,
+      identifierFormat: samlConfig.identifierFormat,
+      wantAssertionsSigned: samlConfig.wantAssertionsSigned,
+      wantAuthnResponseSigned: samlConfig.wantAuthnResponseSigned,
+      acceptedClockSkewMs: samlConfig.acceptedClockSkewMs,
+      allowCreate: samlConfig.allowCreate,
+      callbackUrl: callbackUrl,
+      // Convert additionalParams to strings for node-saml compatibility
+      additionalParams: Object.fromEntries(
+        Object.entries(samlConfig.additionalParams).map(([k, v]) => [k, String(v)])
+      ),
+      additionalAuthorizeParams: Object.fromEntries(
+        Object.entries(samlConfig.additionalAuthorizeParams).map(([k, v]) => [k, String(v)])
+      ),
+    };
+
+    this.provider = new SAML(nodesamlConfig as NodeSamlConfig);
+
+    this.logger.debug('SAML provider initialized', {
+      issuer: this.config.issuer,
+      audience: this.config.audience,
+      entryPoint: this.config.entryPoint,
+      returnToOrigin: this.config.returnToOrigin,
+      callbackUrl: callbackUrl,
+    });
+  }
+
+  /**
+   * Validate required SAML configuration
+   *
+   * Ensures that all required configuration fields are present and non-empty.
+   * Throws descriptive errors to help with configuration debugging.
+   *
+   * @throws {AuthError} If required configuration is missing
+   * @private
+   */
+  private validateConfig(): void {
+    const required = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin'];
+    const missing = required.filter(key => {
+      const value = this.config[key as keyof SamlConfig];
+      return !value || (typeof value === 'string' && value.trim() === '');
+    });
+
+    if (missing.length > 0) {
+      throw new AuthError(
+        `Missing required SAML configuration: ${missing.join(', ')}`,
+        'INVALID_CONFIG',
+        400
+      );
+    }
+  }
+
+  /**
+   * Generate login URL for SAML authentication
+   *
+   * Creates a SAML AuthnRequest and returns the redirect URL to the IdP.
+   *
+   * @param options - Login options including returnTo URL and additional parameters
+   * @returns Promise resolving to the complete login URL
+   *
+   * @throws {Error} If URL generation fails
+   */
+  async getLoginUrl(options: LoginOptions = {}): Promise<string> {
+    try {
+      const { returnTo, ...additionalParams } = options;
+      const payload: RelayStatePayload = {
+        return_to: returnTo || '/',
+      };
+      const relayState = JSON.stringify(payload);
+
+      // Generate SAML AuthnRequest URL
+      const loginUrl = await this.provider.getAuthorizeUrlAsync(
+        relayState,
+        undefined,
+        { ...this.config.additionalAuthorizeParams, ...additionalParams }
+      );
+
+      this.logger.debug('Generated login URL', {
+        hasRelayState: !!relayState,
+        return_to: payload.return_to,
+        loginUrl: loginUrl.split('?')[0], // Log URL without parameters for security
+      });
+
+      return loginUrl;
+    } catch (error) {
+      this.logger.error('Failed to generate login URL', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        options
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Initiate SAML login by redirecting to IdP
+   *
+   * Generates a login URL and returns a 302 redirect Response.
+   * This is a convenience method that combines getLoginUrl() with Response.redirect().
+   *
+   * @param options - Login options including returnTo URL
+   * @returns Promise resolving to a redirect Response to the IdP login page
+   */
+  async login(options: LoginOptions = {}): Promise<Response> {
+    const loginUrl = await this.getLoginUrl(options);
+    this.logger.debug('Generated login URL:', { loginUrl });
+    return Response.redirect(loginUrl, 302);
+  }
+
+  /**
+   * Authenticate SAML response from IdP
+   *
+   * Validates and processes the SAML response received at the ACS endpoint:
+   * 1. Extracts SAMLResponse from POST body
+   * 2. Validates SAML signatures and assertions
+   * 3. Processes RelayState for returnTo URL
+   * 4. Maps SAML attributes to User object
+   * 5. Calls authentication callbacks
+   *
+   * @param options - Authentication options with request and callbacks
+   * @returns Promise resolving to authenticated user, profile, and returnTo URL
+   *
+   * @throws {AuthError} If authentication fails or SAML response is invalid
+   */
+  async authenticate(options: AuthenticateOptions): Promise<{
+    user: User;
+    profile: SAMLProfile;
+    returnTo?: string;
+  }> {
+    const { req, callbacks } = options;
+
+    try {
+      // Validate request
+      if (!req || !(req instanceof Request)) {
+        throw new AuthError('Invalid request object provided', 'INVALID_REQUEST', 400);
+      }
+
+      // Extract SAML response from request body
+      const requestText = await req.text();
+      if (!requestText) {
+        throw new AuthError('No request body found', 'MISSING_BODY', 400);
+      }
+
+      // Parse form data
+      const formData = new URLSearchParams(requestText);
+      const samlResponse = formData.get('SAMLResponse');
+      const relayState = formData.get('RelayState');
+
+      if (!samlResponse) {
+        throw new AuthError('No SAMLResponse found in request', 'MISSING_SAML_RESPONSE', 400);
+      }
+
+      this.logger.debug('Received SAML response', {
+        hasRelayState: !!relayState,
+        samlResponseLength: samlResponse.length,
+      });
+
+      // Validate SAML response
+      const result = await this.provider.validatePostResponseAsync({
+        SAMLResponse: samlResponse
+      }) as SAMLResponse;
+
+      if (!result || !result.profile) {
+        throw new AuthError('Invalid SAML response or missing profile', 'INVALID_SAML_RESPONSE', 400);
+      }
+
+      const profile = result.profile as SAMLProfile;
+
+      this.logger.info('SAML authentication successful', {
+        nameID: profile.nameID,
+        issuer: profile.issuer,
+        sessionIndex: profile.sessionIndex,
+      });
+
+      // Process RelayState to get returnTo URL
+      let returnTo: string | undefined;
+      if (relayState) {
+        returnTo = await this.processRelayState(relayState);
+      }
+
+      // Map SAML profile to User object
+      let user: User;
+      if (callbacks?.mapProfile) {
+        user = await callbacks.mapProfile(profile);
+      } else {
+        user = this.defaultMapProfile(profile);
+      }
+
+      // Call signIn callback if provided
+      if (callbacks?.signIn) {
+        await callbacks.signIn({ user, profile });
+      }
+
+      this.logger.info('User authentication completed', {
+        userId: user.id,
+        returnTo,
+      });
+
+      return { user, profile, returnTo };
+
+    } catch (error) {
+      this.logger.error('SAML authentication failed', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      if (error instanceof AuthError) {
+        throw error;
+      }
+
+      throw new AuthError(
+        'SAML authentication failed',
+        'AUTHENTICATION_FAILED',
+        500
+      );
+    }
+  }
+
+  /**
+   * Process RelayState to extract returnTo URL
+   *
+   * Parses and validates the RelayState parameter from SAML response:
+   * 1. Decodes JSON payload from RelayState
+   * 2. Extracts return_to URL
+   * 3. Sanitizes URL against allowed origins
+   * 4. Returns safe URL or fallback
+   *
+   * @param relayState - RelayState parameter from SAML response
+   * @returns Promise resolving to sanitized returnTo URL or undefined
+   *
+   * @private
+   * @security URLs are validated against allowed origins to prevent open redirects
+   */
+  private async processRelayState(relayState: string): Promise<string | undefined> {
+    // Parse RelayState as simple JSON
+    let payload: RelayStatePayload;
+
+    try {
+      // Parse RelayState as simple JSON
+      payload = JSON.parse(relayState);
+    } catch (error) {
+      this.logger.warn('Malformed RelayState: invalid JSON', {
+        error: error instanceof Error ? error.message : String(error),
+        relayState,
+      });
+      return undefined;
+    }
+
+    // Sanitize return_to URL
+    try {
+      if (payload.return_to) {
+        const allowedOrigins = [this.config.returnToOrigin];
+        const sanitized = AuthUtils.sanitizeReturnTo(payload.return_to, allowedOrigins);
+        if (!sanitized) {
+          this.logger.warn('Return_to URL failed sanitization', { return_to: payload.return_to });
+          return '/';
+        }
+        return sanitized;
+      }
+      return undefined;
+    } catch (error) {
+      this.logger.error('Failed to process RelayState', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return undefined;
+    }
+  }
+
+  /**
+   * Default mapping from SAML profile to User
+   *
+   * Maps Stanford SAML attributes to a standardized User object.
+   *
+   * @param profile - SAML profile with Stanford attributes
+   * @returns User object with mapped attributes
+   *
+   * @private
+   */
+  private defaultMapProfile(profile: SAMLProfile): User {
+    // Extract user information from Stanford SAML attributes
+    const attributes = profile.attributes || profile;
+
+    return {
+      id: (attributes.encodedSUID || attributes.uid || attributes.nameID || 'unknown') as string,
+      email: (attributes.email || (attributes.userName ? `${attributes.userName}@stanford.edu` : undefined)) as string | undefined,
+      name: (attributes.displayName || (attributes.firstName && attributes.lastName ? `${attributes.firstName} ${attributes.lastName}` : undefined)) as string | undefined,
+      sessionId: (attributes.sessionIndex || attributes.sessionId) as string | undefined,
+      suid: attributes.suid as string | undefined,
+      imageUrl: attributes.imageUrl as string | undefined,
+      ...attributes,
+    };
+  }
+}
+
+/**
+ * Factory function to create SAMLProvider instance
+ *
+ * @param config - SAML configuration
+ * @param logger - Optional logger
+ * @returns Configured SAMLProvider instance
+ */
+export function createSAMLProvider(config: SamlConfig, logger?: Logger): SAMLProvider {
+  return new SAMLProvider(config, logger);
+}

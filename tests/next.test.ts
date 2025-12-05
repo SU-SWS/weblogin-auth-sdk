@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AdaptNext, createAdaptNext, createNextjsCookieStore, getSessionFromNextRequest, getSessionFromNextCookies } from '../src/next';
+import { WebLoginNext, createWebLoginNext, createNextjsCookieStore, getSessionFromNextRequest, getSessionFromNextCookies } from '../src/next';
 import { SAMLProvider } from '../src/saml';
 import { SessionManager } from '../src/session';
 import { Session, User } from '../src/types';
@@ -168,8 +168,8 @@ describe('getSessionFromNextCookies', () => {
   });
 });
 
-describe('AdaptNext', () => {
-  let adaptNext: AdaptNext;
+describe('WebLoginNext', () => {
+  let webLoginNext: WebLoginNext;
   let mockSamlProvider: jest.Mocked<SAMLProvider>;
   let mockSessionManager: jest.Mocked<SessionManager>;
 
@@ -220,12 +220,12 @@ describe('AdaptNext', () => {
     } as any;
     MockedSessionManager.mockImplementation(() => mockSessionManager);
 
-    adaptNext = new AdaptNext(testConfig);
+    webLoginNext = new WebLoginNext(testConfig);
   });
 
   describe('constructor', () => {
-    it('should create AdaptNext instance with minimal config', () => {
-      expect(adaptNext).toBeInstanceOf(AdaptNext);
+    it('should create WebLoginNext instance with minimal config', () => {
+      expect(webLoginNext).toBeInstanceOf(WebLoginNext);
       expect(MockedSAMLProvider).toHaveBeenCalledWith(
         expect.objectContaining({
           issuer: 'test-issuer',
@@ -249,8 +249,8 @@ describe('AdaptNext', () => {
         callbacks
       };
 
-      const instance = new AdaptNext(configWithCallbacks);
-      expect(instance).toBeInstanceOf(AdaptNext);
+      const instance = new WebLoginNext(configWithCallbacks);
+      expect(instance).toBeInstanceOf(WebLoginNext);
     });
 
     it('should create instance with custom logger', () => {
@@ -267,8 +267,8 @@ describe('AdaptNext', () => {
         verbose: true
       };
 
-      const instance = new AdaptNext(configWithLogger);
-      expect(instance).toBeInstanceOf(AdaptNext);
+      const instance = new WebLoginNext(configWithLogger);
+      expect(instance).toBeInstanceOf(WebLoginNext);
     });
   });
 
@@ -282,8 +282,8 @@ describe('AdaptNext', () => {
     it('should throw error when calling login in browser', async () => {
       (global as any).window = {};
 
-      await expect(adaptNext.login()).rejects.toThrow(
-        'AdaptNext.login() should not be called in a browser environment'
+      await expect(webLoginNext.login()).rejects.toThrow(
+        'WebLoginNext.login() should not be called in a browser environment'
       );
     });
 
@@ -291,16 +291,16 @@ describe('AdaptNext', () => {
       (global as any).window = {};
 
       const request = new Request('https://test.com');
-      await expect(adaptNext.authenticate(request)).rejects.toThrow(
-        'AdaptNext.authenticate() should not be called in a browser environment'
+      await expect(webLoginNext.authenticate(request)).rejects.toThrow(
+        'WebLoginNext.authenticate() should not be called in a browser environment'
       );
     });
 
     it('should throw error when calling getSession in browser', async () => {
       (global as any).window = {};
 
-      await expect(adaptNext.getSession()).rejects.toThrow(
-        'AdaptNext.getSession() should not be called in a browser environment'
+      await expect(webLoginNext.getSession()).rejects.toThrow(
+        'WebLoginNext.getSession() should not be called in a browser environment'
       );
     });
   });
@@ -311,7 +311,7 @@ describe('AdaptNext', () => {
       mockSamlProvider.login.mockResolvedValue(mockResponse);
 
       const options = { returnTo: '/dashboard' };
-      const result = await adaptNext.login(options);
+      const result = await webLoginNext.login(options);
 
       expect(mockSamlProvider.login).toHaveBeenCalledWith(options);
       expect(result).toBe(mockResponse);
@@ -321,7 +321,7 @@ describe('AdaptNext', () => {
       const mockResponse = new Response('', { status: 302 });
       mockSamlProvider.login.mockResolvedValue(mockResponse);
 
-      await adaptNext.login();
+      await webLoginNext.login();
 
       expect(mockSamlProvider.login).toHaveBeenCalledWith({});
     });
@@ -339,7 +339,7 @@ describe('AdaptNext', () => {
 
       mockSessionManager.createSession.mockResolvedValue(testSession);
 
-      const result = await adaptNext.authenticate(request);
+      const result = await webLoginNext.authenticate(request);
 
       expect(mockSamlProvider.authenticate).toHaveBeenCalledWith({
         req: request,
@@ -360,7 +360,7 @@ describe('AdaptNext', () => {
         callbacks: { session: sessionCallback }
       };
 
-      const instanceWithCallback = new AdaptNext(configWithCallback);
+      const instanceWithCallback = new WebLoginNext(configWithCallback);
       const request = new Request('https://test.com/acs', { method: 'POST' });
 
       mockSamlProvider.authenticate.mockResolvedValue({
@@ -383,7 +383,7 @@ describe('AdaptNext', () => {
     it('should delegate to session manager when no request provided', async () => {
       mockSessionManager.getSession.mockResolvedValue(testSession);
 
-      const result = await adaptNext.getSession();
+      const result = await webLoginNext.getSession();
 
       expect(mockSessionManager.getSession).toHaveBeenCalled();
       expect(result).toBe(testSession);
@@ -393,7 +393,7 @@ describe('AdaptNext', () => {
       // This test verifies the API signature change - it should not throw an error
       // when called with a Request parameter
       const request = new Request('https://test.com');
-      const result = await adaptNext.getSession(request);
+      const result = await webLoginNext.getSession(request);
 
       // The important thing is that the method accepts the Request parameter
       // In the test environment, it may return mock data
@@ -405,7 +405,7 @@ describe('AdaptNext', () => {
     it('should delegate to session manager when no request provided', async () => {
       mockSessionManager.getUser.mockResolvedValue(testUser);
 
-      const result = await adaptNext.getUser();
+      const result = await webLoginNext.getUser();
 
       expect(mockSessionManager.getUser).toHaveBeenCalled();
       expect(result).toBe(testUser);
@@ -414,7 +414,7 @@ describe('AdaptNext', () => {
     it('should extract user from session when request provided', async () => {
       const request = new Request('https://test.com');
       // This would use getSessionFromNextRequest internally
-      const result = await adaptNext.getUser(request);
+      const result = await webLoginNext.getUser(request);
 
       // The result depends on the mocked session from getSessionFromNextRequest
       expect(result).toEqual(expect.any(Object));
@@ -425,7 +425,7 @@ describe('AdaptNext', () => {
     it('should delegate to session manager when no request provided', async () => {
       mockSessionManager.isAuthenticated.mockResolvedValue(true);
 
-      const result = await adaptNext.isAuthenticated();
+      const result = await webLoginNext.isAuthenticated();
 
       expect(mockSessionManager.isAuthenticated).toHaveBeenCalled();
       expect(result).toBe(true);
@@ -434,7 +434,7 @@ describe('AdaptNext', () => {
     it('should check session existence when request provided', async () => {
       const request = new Request('https://test.com');
       // This would use getSessionFromNextRequest internally
-      const result = await adaptNext.isAuthenticated(request);
+      const result = await webLoginNext.isAuthenticated(request);
 
       // The result depends on the mocked session from getSessionFromNextRequest
       expect(typeof result).toBe('boolean');
@@ -445,7 +445,7 @@ describe('AdaptNext', () => {
     it('should destroy session', async () => {
       mockSessionManager.getSession.mockResolvedValue(testSession);
 
-      await adaptNext.logout();
+      await webLoginNext.logout();
 
       expect(mockSessionManager.destroySession).toHaveBeenCalled();
     });
@@ -457,7 +457,7 @@ describe('AdaptNext', () => {
         callbacks: { signOut: signOutCallback }
       };
 
-      const instanceWithCallback = new AdaptNext(configWithCallback);
+      const instanceWithCallback = new WebLoginNext(configWithCallback);
 
       mockSessionManager.getSession.mockResolvedValue(testSession);
 
@@ -474,7 +474,7 @@ describe('AdaptNext', () => {
         callbacks: { signOut: signOutCallback }
       };
 
-      const instanceWithCallback = new AdaptNext(configWithCallback);
+      const instanceWithCallback = new WebLoginNext(configWithCallback);
 
       mockSessionManager.getSession.mockResolvedValue(null);
 
@@ -489,7 +489,7 @@ describe('AdaptNext', () => {
     it('should create middleware that provides auth context', async () => {
       // The auth middleware now uses Request-based session retrieval
       const mockHandler = jest.fn().mockResolvedValue(new Response('OK'));
-      const middleware = adaptNext.auth(mockHandler);
+      const middleware = webLoginNext.auth(mockHandler);
 
       const request = new Request('https://test.com/protected');
       await middleware(request);
@@ -508,7 +508,7 @@ describe('AdaptNext', () => {
       // Since auth middleware now uses Request-based session retrieval,
       // we need to test the actual behavior which may include mock data
       const mockHandler = jest.fn().mockResolvedValue(new Response('OK'));
-      const middleware = adaptNext.auth(mockHandler);
+      const middleware = webLoginNext.auth(mockHandler);
 
       const request = new Request('https://test.com/protected');
       await middleware(request);
@@ -529,7 +529,7 @@ describe('AdaptNext', () => {
       mockSamlProvider.getLoginUrl.mockResolvedValue('https://idp.stanford.edu/login?...');
 
       const options = { returnTo: '/dashboard' };
-      const result = await adaptNext.getLoginUrl(options);
+      const result = await webLoginNext.getLoginUrl(options);
 
       expect(mockSamlProvider.getLoginUrl).toHaveBeenCalledWith(options);
       expect(result).toBe('https://idp.stanford.edu/login?...');
@@ -541,7 +541,7 @@ describe('AdaptNext', () => {
       const refreshedSession = { ...testSession, issuedAt: Date.now() };
       mockSessionManager.refreshSession.mockResolvedValue(refreshedSession);
 
-      const result = await adaptNext.refreshSession();
+      const result = await webLoginNext.refreshSession();
 
       expect(mockSessionManager.refreshSession).toHaveBeenCalled();
       expect(result).toBe(refreshedSession);
@@ -555,7 +555,7 @@ describe('AdaptNext', () => {
 
       mockSessionManager.updateSession.mockResolvedValue(updatedSession);
 
-      const result = await adaptNext.updateSession(updates);
+      const result = await webLoginNext.updateSession(updates);
 
       expect(mockSessionManager.updateSession).toHaveBeenCalledWith(updates);
       expect(result).toBe(updatedSession);
@@ -568,7 +568,7 @@ describe('AdaptNext', () => {
         callbacks: { session: sessionCallback }
       };
 
-      const instanceWithCallback = new AdaptNext(configWithCallback);
+      const instanceWithCallback = new WebLoginNext(configWithCallback);
       const updates = { meta: { theme: 'dark' } };
       const updatedSession = { ...testSession, ...updates };
 
@@ -590,7 +590,7 @@ describe('AdaptNext', () => {
         callbacks: { session: sessionCallback }
       };
 
-      const instanceWithCallback = new AdaptNext(configWithCallback);
+      const instanceWithCallback = new WebLoginNext(configWithCallback);
 
       mockSessionManager.updateSession.mockResolvedValue(null);
 
@@ -601,8 +601,8 @@ describe('AdaptNext', () => {
   });
 });
 
-describe('createAdaptNext factory function', () => {
-  it('should create AdaptNext instance', () => {
+describe('createWebLoginNext factory function', () => {
+  it('should create WebLoginNext instance', () => {
     const config = {
       saml: {
         issuer: 'test-issuer',
@@ -615,8 +615,8 @@ describe('createAdaptNext factory function', () => {
       }
     };
 
-    const instance = createAdaptNext(config);
+    const instance = createWebLoginNext(config);
 
-    expect(instance).toBeInstanceOf(AdaptNext);
+    expect(instance).toBeInstanceOf(WebLoginNext);
   });
 });

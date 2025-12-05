@@ -421,9 +421,9 @@ export type RouteHandler = (
 ) => Promise<Response> | Response;
 
 /**
- * Required configuration for AdaptNext (minimal fields developers must provide)
+ * Required configuration for WebLoginNext (minimal fields developers must provide)
  */
-export interface RequiredAdaptNextConfig {
+export interface RequiredWebLoginNextConfig {
   /**
    * SAML configuration - only required fields need to be provided
    */
@@ -436,9 +436,9 @@ export interface RequiredAdaptNextConfig {
 }
 
 /**
- * Optional configuration for AdaptNext with sensible defaults
+ * Optional configuration for WebLoginNext with sensible defaults
  */
-export interface OptionalAdaptNextConfig {
+export interface OptionalWebLoginNextConfig {
   /**
    * Optional SAML configuration (will use sensible defaults)
    */
@@ -468,6 +468,6 @@ export interface OptionalAdaptNextConfig {
 }
 
 /**
- * Complete configuration for AdaptNext (combines required and optional)
+ * Complete configuration for WebLoginNext (combines required and optional)
  */
-export type AdaptNextConfig = RequiredAdaptNextConfig & OptionalAdaptNextConfig;
+export type WebLoginNextConfig = RequiredWebLoginNextConfig & OptionalWebLoginNextConfig;

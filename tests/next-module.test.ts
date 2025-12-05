@@ -1,7 +1,7 @@
 /**
  * Test the separate Next.js module exports
  * These tests verify that the Next.js functionality is correctly isolated
- * in its own module and importable via 'adapt-auth-sdk/next'
+ * in its own module and importable via 'weblogin-auth-sdk/next'
  */
 
 import fs from 'fs';
@@ -58,8 +58,8 @@ describe('Next.js Module Exports', () => {
       expect(fs.existsSync(docPath)).toBe(true);
 
       const docContent = fs.readFileSync(docPath, 'utf8');
-      expect(docContent).toContain('adapt-auth-sdk/next');
-      expect(docContent).toContain('createAdaptNext');
+      expect(docContent).toContain('weblogin-auth-sdk/next');
+      expect(docContent).toContain('createWebLoginNext');
     });
 
     it('should have updated main Next.js example', () => {
@@ -67,7 +67,7 @@ describe('Next.js Module Exports', () => {
 
       if (fs.existsSync(docPath)) {
         const docContent = fs.readFileSync(docPath, 'utf8');
-        expect(docContent).toContain('adapt-auth-sdk/next');
+        expect(docContent).toContain('weblogin-auth-sdk/next');
       }
     });
 
@@ -75,7 +75,7 @@ describe('Next.js Module Exports', () => {
       const readmePath = path.resolve(__dirname, '../README.md');
 
       const readmeContent = fs.readFileSync(readmePath, 'utf8');
-      expect(readmeContent).toContain('adapt-auth-sdk/next');
+      expect(readmeContent).toContain('weblogin-auth-sdk/next');
       expect(readmeContent).toContain('Framework-Agnostic');
     });
   });

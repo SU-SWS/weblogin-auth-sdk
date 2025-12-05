@@ -35,7 +35,7 @@ WEBLOGIN_AUTH_FORCE_LOGIN="true"
 # Which IDP to connect to 'itlab' | 'dev' | 'uat' | 'prod'
 WEBLOGIN_AUTH_IDP="prod"
 # The ACS full url (Redirect back to your site path)
-WEBLOGIN_AUTH_ACS_URL="https://deploy-preview-24--adapt-stripe.netlify.app/auth"
+WEBLOGIN_AUTH_ACS_URL="https://deploy-preview-24--weblogin-example.netlify.app/auth"
 # The SAML callback path (Should match the ACS url)
 WEBLOGIN_AUTH_CALLBACK_PATH="/auth"
 # Logout path to the IDP for SLO
@@ -70,7 +70,7 @@ export const auth = new WebLoginAuth({
     forceAuthn: process.env.NODE_ENV === 'production',
     idp: process.env.WEBLOGIN_AUTH_IDP || 'prod',
     callbackUrl: process.env.WEBLOGIN_AUTH_ACS_URL || `${appUrl}/auth`,
-    issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://github.com/su-sws/adapt-stripe',
+    issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://github.com/su-sws/weblogin-example',
     decryptionPvk: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
   },
   session: {
@@ -183,12 +183,12 @@ export default handler;
 
 ### Usage with Next.js App Router
 
-For Next.js App Router applications, use the dedicated entry point `adapt-auth-sdk/next`. This ensures optimal bundle size and compatibility with Server Components.
+For Next.js App Router applications, use the dedicated entry point `weblogin-auth-sdk/next`. This ensures optimal bundle size and compatibility with Server Components.
 
 ```typescript
-import { createAdaptNext } from 'adapt-auth-sdk/next';
+import { createWebLoginNext } from 'weblogin-auth-sdk/next';
 
-const auth = createAdaptNext({
+const auth = createWebLoginNext({
   // ... configuration
 });
 ```
@@ -281,7 +281,7 @@ export const auth = new WebLoginAuth({
     idp: process.env.WEBLOGIN_AUTH_IDP || 'prod',
     path: process.env.WEBLOGIN_AUTH_CALLBACK_PATH || '/auth',
     callbackUrl: process.env.WEBLOGIN_AUTH_ACS_URL || `${appUrl}/auth`,
-    issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://github.com/su-sws/adapt-stripe',
+    issuer: process.env.WEBLOGIN_AUTH_ISSUER || 'https://github.com/su-sws/weblogin-example',
     decryptionPvk: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY,
   },
   session: {

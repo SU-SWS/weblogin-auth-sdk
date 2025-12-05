@@ -85,7 +85,7 @@ export interface EdgeCookie {
  * @example
  * ```typescript
  * const parser = new EdgeCookieParser(request.headers.get('cookie'));
- * const sessionValue = parser.get('adapt-auth-session');
+ * const sessionValue = parser.get('weblogin-auth-session');
  * const allCookies = parser.getAll();
  * ```
  */
@@ -135,7 +135,7 @@ export class EdgeCookieParser {
    *
    * @example
    * ```typescript
-   * const sessionValue = parser.get('adapt-auth-session');
+   * const sessionValue = parser.get('weblogin-auth-session');
    * if (sessionValue) {
    *   // Process session cookie
    * }
@@ -182,7 +182,7 @@ export class EdgeCookieParser {
  * export default async function handler(request: Request) {
  *   const reader = new EdgeSessionReader(
  *     process.env.SESSION_SECRET,
- *     'adapt-auth-session'
+ *     'weblogin-auth-session'
  *   );
  *
  *   const isAuth = await reader.isAuthenticated(request);
@@ -207,7 +207,7 @@ export class EdgeSessionReader {
    * Create a new edge session reader
    *
    * @param secret - Session secret for decrypting cookies (must be 32+ characters)
-   * @param cookieName - Name of the session cookie (defaults to 'adapt-auth-session')
+   * @param cookieName - Name of the session cookie (defaults to 'weblogin-auth-session')
    * @param logger - Optional logger for debugging (defaults to silent logger)
    *
    * @throws {Error} If session secret is less than 32 characters
@@ -223,14 +223,14 @@ export class EdgeSessionReader {
    * // With verbose logging
    * const reader = new EdgeSessionReader(
    *   process.env.SESSION_SECRET!,
-   *   'my-session-cookie',
+   *   'weblogin-auth-session',
    *   new EdgeConsoleLogger(true)
    * );
    * ```
    */
   constructor(
     secret: string,
-    cookieName: string = 'adapt-auth-session',
+    cookieName: string = 'weblogin-auth-session',
     logger?: EdgeLogger
   ) {
     this.secret = secret;

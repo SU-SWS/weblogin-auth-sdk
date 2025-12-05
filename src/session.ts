@@ -139,7 +139,7 @@ export class SessionManager {
    * const sessionManager = new SessionManager(
    *   createWebCookieStore(request, response),
    *   {
-   *     name: 'adapt-auth-session',
+   *     name: 'weblogin-auth-session',
    *     secret: process.env.SESSION_SECRET,
    *     cookie: {
    *       secure: true,

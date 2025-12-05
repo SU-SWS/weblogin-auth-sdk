@@ -30,6 +30,7 @@ import {
   LoginOptions,
   AuthCallbacks,
   Logger,
+  WebLoginNextConfig,
 } from './types.js';
 import { DefaultLogger } from './logger.js';
 
@@ -122,79 +123,27 @@ export async function getSessionFromNextCookies(
 }
 
 /**
- * Required configuration for AdaptNext (minimal fields developers must provide)
- */
-export interface RequiredAdaptNextConfig {
-  /**
-   * SAML configuration - only required fields need to be provided
-   */
-  saml: RequiredSamlConfig;
-
-  /**
-   * Session configuration - only required fields need to be provided
-   */
-  session: RequiredSessionConfig;
-}
-
-/**
- * Optional configuration for AdaptNext with sensible defaults
- */
-export interface OptionalAdaptNextConfig {
-  /**
-   * Optional SAML configuration (will use sensible defaults)
-   */
-  saml?: OptionalSamlConfig;
-
-  /**
-   * Optional session configuration (will use sensible defaults)
-   */
-  session?: OptionalSessionConfig;
-
-  /**
-   * Custom logger implementation
-   * @default DefaultLogger
-   */
-  logger?: Logger;
-
-  /**
-   * Enable verbose logging for debugging
-   * @default false
-   */
-  verbose?: boolean;
-
-  /**
-   * Authentication event callbacks
-   */
-  callbacks?: AuthCallbacks;
-}
-
-/**
- * Complete configuration for AdaptNext (combines required and optional)
- */
-export type AdaptNextConfig = RequiredAdaptNextConfig & OptionalAdaptNextConfig;
-
-/**
- * AdaptNext class for Next.js integration
+ * WebLoginNext class for Next.js integration
  *
  * High-level authentication class designed specifically for Next.js App Router.
  * Provides a simple API that handles SAML authentication, session management,
  * and route protection.
  */
-export class AdaptNext {
+export class WebLoginNext {
   private samlProvider: SAMLProvider;
   private sessionConfig: SessionConfig;
   private logger: Logger;
   private callbacks?: AuthCallbacks;
 
   /**
-   * Create a new AdaptNext instance
+   * Create a new WebLoginNext instance
    *
    * Initializes SAML provider and configures session management for Next.js.
    * Merges provided configuration with sensible defaults.
    *
    * @param config - Authentication configuration (required and optional settings)
    */
-  constructor(config: AdaptNextConfig) {
+  constructor(config: WebLoginNextConfig) {
     this.logger = config.logger || new DefaultLogger(config.verbose);
     this.callbacks = config.callbacks;
 
@@ -223,7 +172,7 @@ export class AdaptNext {
    */
   private assertServerEnvironment(methodName: string): void {
     if (typeof window !== 'undefined') {
-      throw new Error(`AdaptNext.${methodName}() should not be called in a browser environment`);
+      throw new Error(`WebLoginNext.${methodName}() should not be called in a browser environment`);
     }
   }
 
@@ -465,11 +414,11 @@ export class AdaptNext {
 }
 
 /**
- * Factory function to create AdaptNext instance
+ * Factory function to create WebLoginNext instance
  *
  * @param config - Authentication configuration
- * @returns Configured AdaptNext instance
+ * @returns Configured WebLoginNext instance
  */
-export function createAdaptNext(config: AdaptNextConfig): AdaptNext {
-  return new AdaptNext(config);
+export function createWebLoginNext(config: WebLoginNextConfig): WebLoginNext {
+  return new WebLoginNext(config);
 }

@@ -62,7 +62,7 @@ export class SAMLError extends AuthError {
  * throw new SessionError(
  *   'Session cookie exceeds size limit',
  *   'COOKIE_TOO_LARGE',
- *   'adapt-auth-session',
+ *   'weblogin-auth-session',
  *   500
  * );
  * ```

@@ -1,5 +1,5 @@
-# ADAPT Auth SDK
-github: su-sws/adapt-auth-sdk
+# Weblogin Auth SDK
+github: su-sws/weblogin-auth-sdk
 
 
 ## Copilot Instructions — Auth Package (TypeScript + SAML + iron-session)

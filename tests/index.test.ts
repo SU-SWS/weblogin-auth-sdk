@@ -1,97 +1,97 @@
-import * as adaptAuth from '../src/index';
+import * as webloginAuth from '../src/index';
 
-describe('ADAPT Auth SDK exports', () => {
+describe('Weblogin Auth SDK exports', () => {
   describe('SAML exports', () => {
     it('should export SAMLProvider class', () => {
-      expect(typeof adaptAuth.SAMLProvider).toBe('function');
-      expect(adaptAuth.SAMLProvider.prototype.constructor).toBe(adaptAuth.SAMLProvider);
+      expect(typeof webloginAuth.SAMLProvider).toBe('function');
+      expect(webloginAuth.SAMLProvider.prototype.constructor).toBe(webloginAuth.SAMLProvider);
     });
 
     it('should export createSAMLProvider function', () => {
-      expect(typeof adaptAuth.createSAMLProvider).toBe('function');
+      expect(typeof webloginAuth.createSAMLProvider).toBe('function');
     });
   });
 
   describe('Session exports', () => {
     it('should export SessionManager class', () => {
-      expect(typeof adaptAuth.SessionManager).toBe('function');
-      expect(adaptAuth.SessionManager.prototype.constructor).toBe(adaptAuth.SessionManager);
+      expect(typeof webloginAuth.SessionManager).toBe('function');
+      expect(webloginAuth.SessionManager.prototype.constructor).toBe(webloginAuth.SessionManager);
     });
 
     it('should export createExpressCookieStore function', () => {
-      expect(typeof adaptAuth.createExpressCookieStore).toBe('function');
+      expect(typeof webloginAuth.createExpressCookieStore).toBe('function');
     });
 
     it('should export createWebCookieStore function', () => {
-      expect(typeof adaptAuth.createWebCookieStore).toBe('function');
+      expect(typeof webloginAuth.createWebCookieStore).toBe('function');
     });
   });
 
   describe('Edge Session exports', () => {
     it('should export EdgeSessionReader class', () => {
-      expect(typeof adaptAuth.EdgeSessionReader).toBe('function');
-      expect(adaptAuth.EdgeSessionReader.prototype.constructor).toBe(adaptAuth.EdgeSessionReader);
+      expect(typeof webloginAuth.EdgeSessionReader).toBe('function');
+      expect(webloginAuth.EdgeSessionReader.prototype.constructor).toBe(webloginAuth.EdgeSessionReader);
     });
 
     it('should export EdgeCookieParser class', () => {
-      expect(typeof adaptAuth.EdgeCookieParser).toBe('function');
-      expect(adaptAuth.EdgeCookieParser.prototype.constructor).toBe(adaptAuth.EdgeCookieParser);
+      expect(typeof webloginAuth.EdgeCookieParser).toBe('function');
+      expect(webloginAuth.EdgeCookieParser.prototype.constructor).toBe(webloginAuth.EdgeCookieParser);
     });
 
     it('should export createEdgeSessionReader function', () => {
-      expect(typeof adaptAuth.createEdgeSessionReader).toBe('function');
+      expect(typeof webloginAuth.createEdgeSessionReader).toBe('function');
     });
 
     it('should export getUserIdFromRequest function', () => {
-      expect(typeof adaptAuth.getUserIdFromRequest).toBe('function');
+      expect(typeof webloginAuth.getUserIdFromRequest).toBe('function');
     });
 
     it('should export getUserIdFromCookie function', () => {
-      expect(typeof adaptAuth.getUserIdFromCookie).toBe('function');
+      expect(typeof webloginAuth.getUserIdFromCookie).toBe('function');
     });
   });
 
   describe('Next.js exports (removed in v2.0.0)', () => {
-    it('should NOT export AdaptNext from main index (now in separate module)', () => {
-      expect((adaptAuth as unknown as Record<string, unknown>).AdaptNext).toBeUndefined();
+    it('should NOT export WebLoginNext from main index (now in separate module)', () => {
+      expect((webloginAuth as unknown as Record<string, unknown>).WebLoginNext).toBeUndefined();
     });
 
-    it('should NOT export createAdaptNext from main index (now in separate module)', () => {
-      expect((adaptAuth as unknown as Record<string, unknown>).createAdaptNext).toBeUndefined();
+    it('should NOT export createWebLoginNext from main index (now in separate module)', () => {
+      expect((webloginAuth as unknown as Record<string, unknown>).createWebLoginNext).toBeUndefined();
     });
   });
 
   describe('Logger exports', () => {
     it('should export DefaultLogger class', () => {
-      expect(typeof adaptAuth.DefaultLogger).toBe('function');
-      expect(adaptAuth.DefaultLogger.prototype.constructor).toBe(adaptAuth.DefaultLogger);
+      expect(typeof webloginAuth.DefaultLogger).toBe('function');
+      expect(webloginAuth.DefaultLogger.prototype.constructor).toBe(webloginAuth.DefaultLogger);
     });
 
     it('should export ConsoleLogger class', () => {
-      expect(typeof adaptAuth.ConsoleLogger).toBe('function');
-      expect(adaptAuth.ConsoleLogger.prototype.constructor).toBe(adaptAuth.ConsoleLogger);
+      expect(typeof webloginAuth.ConsoleLogger).toBe('function');
+      expect(webloginAuth.ConsoleLogger.prototype.constructor).toBe(webloginAuth.ConsoleLogger);
     });
 
     it('should export SilentLogger class', () => {
-      expect(typeof adaptAuth.SilentLogger).toBe('function');
-      expect(adaptAuth.SilentLogger.prototype.constructor).toBe(adaptAuth.SilentLogger);
+      expect(typeof webloginAuth.SilentLogger).toBe('function');
+      expect(webloginAuth.SilentLogger.prototype.constructor).toBe(webloginAuth.SilentLogger);
     });
   });
 
   describe('Utils exports', () => {
     it('should export AuthUtils class', () => {
-      expect(typeof adaptAuth.AuthUtils).toBe('function');
+      expect(typeof webloginAuth.AuthUtils).toBe('function');
     });
   });
 
   describe('Error exports', () => {
     it('should export AuthError class', () => {
-      expect(typeof adaptAuth.AuthError).toBe('function');
-      expect(adaptAuth.AuthError.prototype.constructor).toBe(adaptAuth.AuthError);
+      expect(typeof webloginAuth.AuthError).toBe('function');
+      expect(webloginAuth.AuthError.prototype.constructor).toBe(webloginAuth.AuthError);
     });
 
     it('should have AuthError properly extending Error', () => {
-      expect(adaptAuth.AuthError.prototype).toBeInstanceOf(Error);
+      expect(webloginAuth.AuthError.prototype).toBeInstanceOf(Error);
     });
   });
 
@@ -101,15 +101,15 @@ describe('ADAPT Auth SDK exports', () => {
     it('should have type exports available for import', () => {
       // This test mainly verifies the module structure is correct
       // TypeScript will catch any missing type exports at compile time
-      expect(adaptAuth).toBeDefined();
+      expect(webloginAuth).toBeDefined();
     });
   });
 
   describe('Module structure', () => {
     it('should be importable', () => {
       // The main index module should be importable without errors
-      expect(adaptAuth).toBeDefined();
-      expect(typeof adaptAuth).toBe('object');
+      expect(webloginAuth).toBeDefined();
+      expect(typeof webloginAuth).toBe('object');
     });
 
     it('should export expected core items', () => {
@@ -135,29 +135,29 @@ describe('ADAPT Auth SDK exports', () => {
         'AuthUtils',
         // Errors
         'AuthError'
-        // Note: Next.js exports (AdaptNext, createAdaptNext) are now in separate module
+        // Note: Next.js exports (WebLoginNext, createWebLoginNext) are now in separate module
       ];
 
       expectedExports.forEach(exportName => {
-        expect(adaptAuth).toHaveProperty(exportName);
+        expect(webloginAuth).toHaveProperty(exportName);
       });
     });
   });
 
   describe('Class inheritance verification', () => {
     it('should have AuthError properly extending Error', () => {
-      expect(adaptAuth.AuthError.prototype).toBeInstanceOf(Error);
+      expect(webloginAuth.AuthError.prototype).toBeInstanceOf(Error);
     });
   });
 
   describe('Factory function integration', () => {
     it('should have all factory functions return constructible objects', () => {
       // Test that factory functions exist and could theoretically create instances
-      expect(adaptAuth.createSAMLProvider).toBeDefined();
-      expect(adaptAuth.createExpressCookieStore).toBeDefined();
-      expect(adaptAuth.createWebCookieStore).toBeDefined();
-      expect(adaptAuth.createEdgeSessionReader).toBeDefined();
-      // Note: createAdaptNext is now in separate Next.js module
+      expect(webloginAuth.createSAMLProvider).toBeDefined();
+      expect(webloginAuth.createExpressCookieStore).toBeDefined();
+      expect(webloginAuth.createWebCookieStore).toBeDefined();
+      expect(webloginAuth.createEdgeSessionReader).toBeDefined();
+      // Note: createWebLoginNext is now in separate Next.js module
     });
   });
 });

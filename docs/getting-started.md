@@ -20,7 +20,8 @@ npm install weblogin-auth-sdk
 
 ```typescript
 // app/auth/config.ts
-import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
+import { createWebLoginNext } from 'weblogin-auth-sdk/next';
+import { idps } from 'weblogin-auth-sdk';
 
 export const auth = createWebLoginNext({
   saml: {

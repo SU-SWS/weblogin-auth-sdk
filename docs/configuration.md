@@ -27,7 +27,8 @@ See [environment-variables.md](./environment-variables.md) for more information 
 For more control, you can configure the SDK programmatically:
 
 ```typescript
-import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
+import { createWebLoginNext } from 'weblogin-auth-sdk/next';
+import { idps } from 'weblogin-auth-sdk';
 
 const auth = createWebLoginNext({
   saml: {
@@ -88,7 +89,8 @@ const auth = createWebLoginNext({
 The SDK includes built-in configurations for Stanford's Identity Providers (IdPs). You can import these presets to easily configure your application for different environments.
 
 ```typescript
-import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
+import { createWebLoginNext } from 'weblogin-auth-sdk/next';
+import { idps } from 'weblogin-auth-sdk';
 
 const auth = createWebLoginNext({
   saml: {

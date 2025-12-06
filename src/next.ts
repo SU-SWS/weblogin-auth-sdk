@@ -13,10 +13,14 @@
  * - TypeScript-first API design
  * - Environment validation
  *
+ * The WebloginNext class provides a high-level interface that handles the
+ * complexity of SAML authentication while providing familiar Next.js patterns.
+ *
  * @module next
  */
 
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { SAMLProvider } from './saml.js';
 import { SessionManager, CookieStore, CookieOptions } from './session.js';
 import {
@@ -38,6 +42,14 @@ import { DefaultLogger } from './logger.js';
  *
  * @param cookies - Next.js cookies object from next/headers
  * @returns CookieStore implementation compatible with Next.js
+ *
+ * @example
+ * ```typescript
+ * import { cookies } from 'next/headers';
+ *
+ * const cookieStore = createNextjsCookieStore(await cookies());
+ * const sessionManager = new SessionManager(cookieStore, config);
+ * ```
  */
 export function createNextjsCookieStore(cookies: unknown): CookieStore {
   const cookiesObj = cookies as { get: (name: string) => { name: string; value: string } | undefined; set: (name: string, value: string, options?: CookieOptions) => void };
@@ -63,6 +75,18 @@ export function createNextjsCookieStore(cookies: unknown): CookieStore {
  * @param secret - Session secret (optional, uses env var)
  * @param cookieName - Session cookie name (optional, uses env var)
  * @returns Promise resolving to session data or null
+ *
+ * @example
+ * ```typescript
+ * // In middleware.ts
+ * export async function middleware(request: NextRequest) {
+ *   const session = await getSessionFromNextRequest(request);
+ *   if (!session) {
+ *     return NextResponse.redirect(new URL('/login', request.url));
+ *   }
+ *   return NextResponse.next();
+ * }
+ * ```
  */
 export async function getSessionFromNextRequest(
   request: Request,
@@ -84,6 +108,22 @@ export async function getSessionFromNextRequest(
  * @param secret - Session secret (optional, uses env var)
  * @param cookieName - Session cookie name (optional, uses env var)
  * @returns Promise resolving to session data or null
+ *
+ * @example
+ * ```typescript
+ * // In Server Component
+ * import { cookies } from 'next/headers';
+ *
+ * export default async function Dashboard() {
+ *   const session = await getSessionFromNextCookies(await cookies());
+ *
+ *   if (!session) {
+ *     redirect('/login');
+ *   }
+ *
+ *   return <div>Welcome {session.user.name}!</div>;
+ * }
+ * ```
  */
 export async function getSessionFromNextCookies(
   cookies: { get?: (name: string) => { value: string } | undefined },
@@ -124,6 +164,40 @@ export async function getSessionFromNextCookies(
  * High-level authentication class designed specifically for Next.js App Router.
  * Provides a simple API that handles SAML authentication, session management,
  * and route protection.
+ *
+ * Key features:
+ * - Server-side only (throws errors if used in browser)
+ * - Integrates with Next.js App Router cookies
+ * - Automatic SAML provider and session management
+ * - Built-in error handling and logging
+ * - TypeScript-first with comprehensive type safety
+ * - Callback system for custom authentication logic
+ *
+ * @example
+ * ```typescript
+ * // Create auth instance
+ * const auth = createWebLoginNext({
+ *   saml: {
+ *     issuer: process.env.WEBLOGIN_AUTH_SAML_ENTITY!,
+ *     idpCert: process.env.WEBLOGIN_AUTH_SAML_CERT!,
+ *     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!
+ *   },
+ *   session: {
+ *     name: 'weblogin-auth-session',
+ *     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
+ *   }
+ * });
+ *
+ * // In route handlers
+ * export async function GET() {
+ *   return auth.login({ returnTo: '/dashboard' });
+ * }
+ *
+ * export async function POST(request: Request) {
+ *   const { user, returnTo } = await auth.authenticate(request);
+ *   return Response.redirect(returnTo || '/dashboard');
+ * }
+ * ```
  */
 export class WebLoginNext {
   private samlProvider: SAMLProvider;
@@ -138,6 +212,22 @@ export class WebLoginNext {
    * Merges provided configuration with sensible defaults.
    *
    * @param config - Authentication configuration (required and optional settings)
+   *
+   * @example
+   * ```typescript
+   * const auth = new WebLoginNext({
+   *   saml: {
+   *     issuer: 'my-app-entity-id',
+   *     idpCert: process.env.SAML_CERT,
+   *     returnToOrigin: 'https://myapp.com'
+   *   },
+   *   session: {
+   *     name: 'my-session',
+   *     secret: process.env.SESSION_SECRET
+   *   },
+   *   verbose: true // Enable debug logging
+   * });
+   * ```
    */
   constructor(config: WebLoginNextConfig) {
     this.logger = config.logger || new DefaultLogger(config.verbose);
@@ -224,11 +314,12 @@ export class WebLoginNext {
    * Redirects user to IdP for authentication.
    *
    * @param options - Login options including returnTo URL
-   * @returns Promise resolving to redirect Response to IdP login page
+   * @returns Promise that never resolves (redirects)
    */
-  async login(options: LoginOptions = {}): Promise<Response> {
+  async login(options: LoginOptions = {}): Promise<void> {
     this.assertServerEnvironment('login');
-    return this.samlProvider.login(options);
+    const url = await this.samlProvider.getLoginUrl(options);
+    redirect(url);
   }
 
   /**
@@ -240,6 +331,19 @@ export class WebLoginNext {
    * @returns Promise resolving to authenticated user, session, and returnTo URL
    *
    * @throws {AuthError} If SAML authentication fails
+   *
+   * @example
+   * ```typescript
+   * // app/auth/acs/route.ts
+   * export async function POST(request: Request) {
+   *   try {
+   *     const { user, returnTo } = await auth.authenticate(request);
+   *     return Response.redirect(returnTo || '/dashboard');
+   *   } catch (error) {
+   *     return Response.redirect('/login?error=auth_failed');
+   *   }
+   * }
+   * ```
    */
   async authenticate(request: Request): Promise<{
     user: User;
@@ -271,6 +375,24 @@ export class WebLoginNext {
    *
    * @param request - Optional Request object for API routes and middleware
    * @returns Promise resolving to current session or null if not authenticated
+   *
+   * @example
+   * ```typescript
+   * // In Server Component
+   * const session = await auth.getSession();
+   * if (session) {
+   *   console.log('User:', session.user.name);
+   * }
+   *
+   * // In API route
+   * export async function GET(request: Request) {
+   *   const session = await auth.getSession(request);
+   *   if (!session) {
+   *     return Response.json({ error: 'Unauthorized' }, { status: 401 });
+   *   }
+   *   return Response.json({ user: session.user });
+   * }
+   * ```
    */
   async getSession(request?: Request): Promise<Session | null> {
     this.assertServerEnvironment('getSession');
@@ -290,6 +412,18 @@ export class WebLoginNext {
    *
    * @param request - Optional Request object for API routes and middleware
    * @returns Promise resolving to current user or null if not authenticated
+   *
+   * @example
+   * ```typescript
+   * // In Server Component
+   * const user = await auth.getUser();
+   * if (!user) {
+   *   redirect('/login');
+   * }
+   *
+   * // In API route
+   * const user = await auth.getUser(request);
+   * ```
    */
   async getUser(request?: Request): Promise<User | null> {
     if (request) {
@@ -318,7 +452,19 @@ export class WebLoginNext {
    * Check if user is authenticated
    *
    * @param request - Optional Request object for API routes and middleware
-   * @returns Promise resolving to true if authenticated, false otherwise
+   * @returns Promise resolving to true if user is authenticated
+   *
+   * @example
+   * ```typescript
+   * // In route handler
+   * export async function GET(request: Request) {
+   *   if (!(await auth.isAuthenticated(request))) {
+   *     return Response.redirect('/login');
+   *   }
+   *
+   *   return Response.json({ message: 'Protected data' });
+   * }
+   * ```
    */
   async isAuthenticated(request?: Request): Promise<boolean> {
     if (request) {
@@ -331,9 +477,18 @@ export class WebLoginNext {
   }
 
   /**
-   * Logout user
+   * Logout and destroy session
    *
-   * Destroys the current session.
+   * Clears the user's session and calls logout callbacks.
+   *
+   * @example
+   * ```typescript
+   * // app/logout/route.ts
+   * export async function POST() {
+   *   await auth.logout();
+   *   return Response.redirect('/login');
+   * }
+   * ```
    */
   async logout(): Promise<void> {
     this.assertServerEnvironment('logout');
@@ -348,11 +503,20 @@ export class WebLoginNext {
   }
 
   /**
-   * Refresh current session
+   * Refresh session (sliding expiration)
    *
-   * Updates the session timestamp to extend its validity.
+   * Updates session timestamp to extend its lifetime.
    *
-   * @returns Promise resolving to refreshed session or null if not authenticated
+   * @returns Promise resolving to refreshed session or null if no session
+   *
+   * @example
+   * ```typescript
+   * // In middleware for sliding sessions
+   * export async function middleware(request: NextRequest) {
+   *   await auth.refreshSession(); // Extend session on each request
+   *   return NextResponse.next();
+   * }
+   * ```
    */
   async refreshSession(): Promise<Session | null> {
     this.assertServerEnvironment('refreshSession');
@@ -361,12 +525,33 @@ export class WebLoginNext {
   }
 
   /**
-   * Update session metadata
+   * Update session with additional metadata
    *
-   * Updates the session metadata and saves it.
+   * Convenience function to add custom data to the session cookie.
    *
-   * @param updates - Partial session object with updates
-   * @returns Promise resolving to updated session or null if not authenticated
+   * @param updates - Partial session data to update
+   * @returns Updated session or null if no session exists
+   *
+   * @example
+   * ```typescript
+   * // Add user preferences to session
+   * await auth.updateSession({
+   *   meta: {
+   *     theme: 'dark',
+   *     language: 'en',
+   *     lastVisited: '/dashboard'
+   *   }
+   * });
+   *
+   * // Add custom user data
+   * await auth.updateSession({
+   *   user: {
+   *     ...currentUser,
+   *     displayName: 'John Doe',
+   *     avatar: '/images/avatar.jpg'
+   *   }
+   * });
+   * ```
    */
   async updateSession(updates: Partial<Session>): Promise<Session | null> {
     this.assertServerEnvironment('updateSession');
@@ -383,12 +568,26 @@ export class WebLoginNext {
   }
 
   /**
-   * Authentication middleware
+   * Middleware function for protecting routes
    *
-   * Wraps a Next.js route handler to provide authentication context.
+   * Returns a higher-order function that wraps route handlers with authentication context.
    *
-   * @param handler - Route handler function
-   * @returns Wrapped handler function
+   * @param handler - Route handler function to protect
+   * @returns Wrapped route handler with authentication context
+   *
+   * @example
+   * ```typescript
+   * // app/api/protected/route.ts
+   * export const GET = auth.auth(async (request, context) => {
+   *   if (!context.isAuthenticated) {
+   *     return Response.json({ error: 'Unauthorized' }, { status: 401 });
+   *   }
+   *
+   *   return Response.json({
+   *     message: `Hello ${context.user?.name}!`
+   *   });
+   * });
+   * ```
    */
   auth(handler: (req: Request, ctx: Record<string, unknown>) => Promise<Response>) {
     return async (req: Request, ctx: Record<string, unknown>) => {
@@ -410,11 +609,32 @@ export class WebLoginNext {
 }
 
 /**
- * Factory function to create WebLoginNext instance
+ * Create an WebLoginNext instance with configuration
+ *
+ * Factory function that creates and configures an WebLoginNext instance.
+ * This is the recommended way to create an auth instance.
  *
  * @param config - Authentication configuration
  * @returns Configured WebLoginNext instance
+ *
+ * @example
+ * ```typescript
+ * // lib/auth.ts
+ * export const auth = createWebLoginNext({
+ *   saml: {
+ *     issuer: process.env.WEBLOGIN_AUTH_SAML_ENTITY!,
+ *     idpCert: process.env.WEBLOGIN_AUTH_SAML_CERT!,
+ *     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!
+ *   },
+ *   session: {
+ *     name: 'weblogin-auth-session',
+ *     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
+ *   },
+ *   verbose: process.env.NODE_ENV === 'development'
+ * });
+ * ```
  */
+
 export function createWebLoginNext(config: WebLoginNextConfig): WebLoginNext {
   return new WebLoginNext(config);
 }

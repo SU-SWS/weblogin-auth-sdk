@@ -10,7 +10,8 @@
  * - User profile mapping from SAML attributes
  * - Secure returnTo URL handling
  *
- * The implementation uses @node-saml/node-saml for SAML protocol handling.
+ * The implementation uses @node-saml/node-saml for SAML protocol handling
+ * and provides Stanford-specific defaults and attribute mapping.
  *
  * @module saml
  */
@@ -30,6 +31,42 @@ import {
 import { AuthUtils } from './utils.js';
 import { DefaultLogger } from './logger.js';
 
+const OID_MAP: Record<string, string> = {
+  'urn:oid:0.9.2342.19200300.100.1.1': 'uid',
+  'urn:oid:0.9.2342.19200300.100.1.3': 'mail',
+  'urn:oid:0.9.2342.19200300.100.1.41': 'mobile',
+  'urn:oid:0.9.2342.19200300.100.1.42': 'pager',
+  'urn:oid:1.3.6.1.4.1.250.1.57': 'labeledURI',
+  'urn:oid:1.3.6.1.4.1.299.11.1.4': 'suDisplayNameLF',
+  'urn:oid:1.3.6.1.4.1.299.11.1.9': 'suDisplayAffiliation',
+  'urn:oid:1.3.6.1.4.1.299.11.1.11': 'suEmailPager',
+  'urn:oid:1.3.6.1.4.1.299.11.1.14': 'suAffiliation',
+  'urn:oid:1.3.6.1.4.1.299.11.1.15': 'suMailCode',
+  'urn:oid:1.3.6.1.4.1.299.11.1.18': 'suUnivID',
+  'urn:oid:1.3.6.1.4.1.299.11.1.19': 'suPrivilegeGroup',
+  'urn:oid:1.3.6.1.4.1.299.11.1.21': 'suGivenName',
+  'urn:oid:1.3.6.1.4.1.299.11.1.30': 'suUniqueIdentifier',
+  'urn:oid:1.3.6.1.4.1.299.11.1.64': 'suOU',
+  'urn:oid:1.3.6.1.4.1.299.11.1.204': 'suPrimaryOrganizationName',
+  'urn:oid:1.3.6.1.4.1.5923.1.1.1.6': 'eduPersonPrincipalName',
+  'urn:oid:1.3.6.1.4.1.5923.1.1.1.1': 'eduPersonAffiliation',
+  'urn:oid:1.3.6.1.4.1.5923.1.1.1.7': 'eduPersonEntitlement',
+  'urn:oid:1.3.6.1.4.1.5923.1.1.1.9': 'eduPersonScopedAffiliation',
+  'urn:oid:1.3.6.1.4.1.5923.1.1.1.10': 'eduPersonTargetedID',
+  'urn:oid:2.5.4.3': 'cn',
+  'urn:oid:2.5.4.4': 'sn',
+  'urn:oid:2.5.4.9': 'street',
+  'urn:oid:2.5.4.10': 'o',
+  'urn:oid:2.5.4.11': 'ou',
+  'urn:oid:2.5.4.12': 'title',
+  'urn:oid:2.5.4.13': 'description',
+  'urn:oid:2.5.4.16': 'postalAddress',
+  'urn:oid:2.5.4.20': 'telephoneNumber',
+  'urn:oid:2.5.4.42': 'givenName',
+  'urn:oid:2.16.840.1.113730.3.1.3': 'employeeNumber',
+  'urn:oid:2.16.840.1.113730.3.1.241': 'displayName',
+};
+
 /**
  * SAML authentication provider for Stanford WebLogin
  *
@@ -45,6 +82,21 @@ import { DefaultLogger } from './logger.js';
  * - Configurable certificate validation
  * - Stanford-specific attribute mapping
  * - Comprehensive error handling and logging
+ *
+ * @example
+ * ```typescript
+ * const samlProvider = new SAMLProvider({
+ *   issuer: 'my-app-entity-id',
+ *   idpCert: process.env.WEBLOGIN_AUTH_SAML_CERT,
+ *   returnToOrigin: 'https://myapp.com'
+ * });
+ *
+ * // Redirect to login
+ * const response = await samlProvider.login({ returnTo: '/dashboard' });
+ *
+ * // Handle callback
+ * const { user } = await samlProvider.authenticate({ req: request });
+ * ```
  */
 export class SAMLProvider {
   private provider: SAML;
@@ -61,6 +113,25 @@ export class SAMLProvider {
    * @param logger - Optional logger instance (defaults to DefaultLogger)
    *
    * @throws {AuthError} If required configuration is missing or invalid
+   *
+   * @example
+   * ```typescript
+   * // Minimal configuration
+   * const provider = new SAMLProvider({
+   *   issuer: 'my-app',
+   *   idpCert: certString,
+   *   returnToOrigin: 'https://myapp.com'
+   * });
+   *
+   * // With custom options
+   * const provider = new SAMLProvider({
+   *   issuer: 'my-app',
+   *   idpCert: certString,
+   *   returnToOrigin: 'https://myapp.com',
+   *   wantAssertionsSigned: true,
+   *   acceptedClockSkewMs: 30000
+   * }, customLogger);
+   * ```
    */
   constructor(config: SamlConfig, logger?: Logger) {
     this.logger = logger || new DefaultLogger();
@@ -169,10 +240,31 @@ export class SAMLProvider {
   /**
    * Generate login URL for SAML authentication
    *
-   * Creates a SAML AuthnRequest and returns the redirect URL to the IdP.
+   * Creates a Stanford Pass login URL with proper parameters:
+   * - entity: The SAML entity/issuer identifier
+   * - return_to: ACS URL where SAML response will be posted
+   * - final_destination: Where user should go after authentication
+   * - RelayState: Encrypted payload containing returnTo URL (if enabled)
    *
    * @param options - Login options including returnTo URL and additional parameters
    * @returns Promise resolving to the complete login URL
+   *
+   * @example
+   * ```typescript
+   * // Basic login URL
+   * const url = await samlProvider.getLoginUrl();
+   *
+   * // With returnTo URL
+   * const url = await samlProvider.getLoginUrl({
+   *   returnTo: '/dashboard'
+   * });
+   *
+   * // With additional parameters
+   * const url = await samlProvider.getLoginUrl({
+   *   returnTo: '/admin',
+   *   forceAuthn: 'true'
+   * });
+   * ```
    *
    * @throws {Error} If URL generation fails
    */
@@ -232,10 +324,31 @@ export class SAMLProvider {
    * 4. Maps SAML attributes to User object
    * 5. Calls authentication callbacks
    *
-   * @param options - Authentication options with request and callbacks
+    * @param options - Authentication options with request and callbacks
    * @returns Promise resolving to authenticated user, profile, and returnTo URL
    *
    * @throws {AuthError} If authentication fails or SAML response is invalid
+   *
+   * @example
+   * ```typescript
+   * // In ACS route handler
+   * export async function POST(request: Request) {
+   *   const { user, profile, returnTo } = await samlProvider.authenticate({
+   *     req: request,
+   *     callbacks: {
+   *       mapProfile: (profile) => ({
+   *         id: profile.encodedSUID,
+   *         email: `${profile.userName}@stanford.edu`,
+   *         name: `${profile.firstName} ${profile.lastName}`
+   *       })
+   *     }
+   *   });
+   *
+   *   // Create session and redirect
+   *   await sessionManager.createSession(user);
+   *   return Response.redirect(returnTo || '/dashboard');
+   * }
+   * ```
    */
   async authenticate(options: AuthenticateOptions): Promise<{
     user: User;
@@ -395,14 +508,22 @@ export class SAMLProvider {
     // Extract user information from Stanford SAML attributes
     const attributes = profile.attributes || profile;
 
+    // Map OID attributes to friendly names
+    const mappedAttributes: Record<string, unknown> = { ...attributes };
+    Object.entries(attributes).forEach(([key, value]) => {
+      if (OID_MAP[key]) {
+        mappedAttributes[OID_MAP[key]] = value;
+      }
+    });
+
     return {
-      id: (attributes.encodedSUID || attributes.uid || attributes.nameID || 'unknown') as string,
-      email: (attributes.email || (attributes.userName ? `${attributes.userName}@stanford.edu` : undefined)) as string | undefined,
-      name: (attributes.displayName || (attributes.firstName && attributes.lastName ? `${attributes.firstName} ${attributes.lastName}` : undefined)) as string | undefined,
-      sessionId: (attributes.sessionIndex || attributes.sessionId) as string | undefined,
-      suid: attributes.suid as string | undefined,
-      imageUrl: attributes.imageUrl as string | undefined,
-      ...attributes,
+      id: (mappedAttributes.encodedSUID || mappedAttributes.uid || mappedAttributes.nameID || 'unknown') as string,
+      email: (mappedAttributes.email || mappedAttributes.mail || (mappedAttributes.userName ? `${mappedAttributes.userName}@stanford.edu` : undefined)) as string | undefined,
+      name: (mappedAttributes.displayName || (mappedAttributes.firstName && mappedAttributes.lastName ? `${mappedAttributes.firstName} ${mappedAttributes.lastName}` : undefined) || (mappedAttributes.givenName && mappedAttributes.sn ? `${mappedAttributes.givenName} ${mappedAttributes.sn}` : undefined)) as string | undefined,
+      sessionId: (mappedAttributes.sessionIndex || mappedAttributes.sessionId) as string | undefined,
+      suid: mappedAttributes.suid as string | undefined,
+      imageUrl: mappedAttributes.imageUrl as string | undefined,
+      ...mappedAttributes,
     };
   }
 }

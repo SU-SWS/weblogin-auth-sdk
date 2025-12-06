@@ -26,12 +26,14 @@ npm install weblogin-auth-sdk
 
 ```typescript
 // lib/auth.ts
-import { createWebLoginNext } from 'weblogin-auth-sdk/next';
+import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
 
 export const auth = createWebLoginNext({
   saml: {
     issuer: process.env.WEBLOGIN_AUTH_SAML_ENTITY!,
-    idpCert: process.env.WEBLOGIN_AUTH_SAML_CERT!,
+    // Use the production IdP preset
+    entryPoint: idps.prod.entryPoint,
+    idpCert: idps.prod.cert,
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
@@ -45,11 +47,13 @@ export const auth = createWebLoginNext({
 
 ```typescript
 // For other frameworks or custom implementations
-import { SAMLProvider, SessionManager, createWebCookieStore } from 'weblogin-auth-sdk';
+import { SAMLProvider, SessionManager, createWebCookieStore, idps } from 'weblogin-auth-sdk';
 
 const samlProvider = new SAMLProvider({
   issuer: process.env.WEBLOGIN_AUTH_SAML_ENTITY!,
-  idpCert: process.env.WEBLOGIN_AUTH_SAML_CERT!,
+  // Use the production IdP preset
+  entryPoint: idps.prod.entryPoint,
+  idpCert: idps.prod.cert,
   returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
 });
 

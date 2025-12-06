@@ -263,5 +263,108 @@ describe('SAMLProvider', () => {
 
       await expect(provider.authenticate(options)).rejects.toThrow(AuthError);
     });
+
+    test('should map OID attributes to friendly names', async () => {
+      const mockProfile: SAMLProfile = {
+        issuer: 'test-issuer',
+        sessionIndex: 'session-123',
+        nameID: 'user@example.com',
+        nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+        'oracle:cloud:identity:sessionid': 'session-123',
+        encodedSUID: 'encoded-suid-123',
+        'oracle:cloud:identity:url': 'https://oracle.stanford.edu',
+        userName: 'testuser',
+        // OID attributes
+        'urn:oid:0.9.2342.19200300.100.1.3': 'oid-email@example.com', // mail
+        'urn:oid:2.5.4.42': 'OIDGivenName', // givenName
+        'urn:oid:2.5.4.4': 'OIDSurname', // sn
+        'urn:oid:2.16.840.1.113730.3.1.241': 'OID Display Name', // displayName
+      };
+
+      const mockValidateResponse = jest.fn().mockResolvedValue({
+        profile: mockProfile,
+      });
+
+      const provider = new SAMLProvider(validConfig, logger);
+      (provider as any).provider = {
+        validatePostResponseAsync: mockValidateResponse,
+      };
+
+      const mockReq = {
+        text: jest.fn().mockResolvedValue('SAMLResponse=encoded-response&RelayState=relay-state')
+      } as MockRequest;
+      Object.setPrototypeOf(mockReq, Request.prototype);
+
+      const options: AuthenticateOptions = {
+        req: mockReq as any,
+      };
+
+      const result = await provider.authenticate(options);
+
+      // Check if OID attributes are mapped
+      expect(result.user).toMatchObject({
+        mail: 'oid-email@example.com',
+        givenName: 'OIDGivenName',
+        sn: 'OIDSurname',
+        displayName: 'OID Display Name',
+      });
+      
+      expect(result.user.name).toBe('OID Display Name');
+    });
+
+    test('should use mapped OID attributes for user fields when standard attributes are missing', async () => {
+      const mockProfile: SAMLProfile = {
+        issuer: 'test-issuer',
+        sessionIndex: 'session-123',
+        nameID: 'user@example.com',
+        nameIDFormat: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+        'oracle:cloud:identity:sessionid': 'session-123',
+        encodedSUID: 'encoded-suid-123',
+        'oracle:cloud:identity:url': 'https://oracle.stanford.edu',
+        userName: 'testuser',
+        // OID attributes only
+        'urn:oid:0.9.2342.19200300.100.1.3': 'oid-email@example.com', // mail
+        'urn:oid:2.5.4.42': 'OIDGivenName', // givenName
+        'urn:oid:2.5.4.4': 'OIDSurname', // sn
+      };
+
+      const mockValidateResponse = jest.fn().mockResolvedValue({
+        profile: mockProfile,
+      });
+
+      const provider = new SAMLProvider(validConfig, logger);
+      (provider as any).provider = {
+        validatePostResponseAsync: mockValidateResponse,
+      };
+
+      const mockReq = {
+        text: jest.fn().mockResolvedValue('SAMLResponse=encoded-response&RelayState=relay-state')
+      } as MockRequest;
+      Object.setPrototypeOf(mockReq, Request.prototype);
+
+      const options: AuthenticateOptions = {
+        req: mockReq as any,
+      };
+
+      const result = await provider.authenticate(options);
+
+      expect(result.user.email).toBe('oid-email@example.com');
+      expect(result.user.name).toBe('OIDGivenName OIDSurname');
+    });
+  });
+
+  describe('login', () => {
+    test('should return redirect response', async () => {
+      const provider = new SAMLProvider(validConfig, logger);
+      const mockGetAuthorizeUrlAsync = jest.fn().mockResolvedValue('https://idp.example.com/sso');
+      (provider as any).provider = {
+        getAuthorizeUrlAsync: mockGetAuthorizeUrlAsync,
+      };
+
+      const response = await provider.login();
+      expect(response).toBeInstanceOf(Response);
+      expect(response.status).toBe(302);
+      expect(response.headers.get('Location')).toBe('https://idp.example.com/sso');
+    });
   });
 });

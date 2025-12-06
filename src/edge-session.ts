@@ -223,7 +223,7 @@ export class EdgeSessionReader {
    * // With verbose logging
    * const reader = new EdgeSessionReader(
    *   process.env.SESSION_SECRET!,
-   *   'weblogin-auth-session',
+   *   'my-session-cookie',
    *   new EdgeConsoleLogger(true)
    * );
    * ```
@@ -503,37 +503,34 @@ export async function getUserIdFromRequest(
 }
 
 /**
- * Get user ID from cookie data directly
+ * Lightweight user ID extraction that reuses iron-session
  *
- * @param cookieData - The raw cookie data (string or object)
- * @param secret - Session secret
- * @returns Promise resolving to user ID or null
+ * Direct cookie decryption without creating a full EdgeSessionReader instance.
+ * Useful for one-off session checks.
+ *
+ * @param cookieValue - Encrypted session cookie value
+ * @param secret - Session secret for decryption
+ * @returns Promise resolving to user ID or null if invalid/missing
+ *
+ * @example
+ * ```typescript
+ * const cookies = parseCookies(request.headers.get('cookie'));
+ * const sessionCookie = cookies['weblogin-auth-session'];
+ *
+ * if (sessionCookie) {
+ *   const userId = await getUserIdFromCookie(sessionCookie, secret);
+ *   console.log('User ID:', userId);
+ * }
+ * ```
  */
 export async function getUserIdFromCookie(
-  cookieData: string | Record<string, unknown>,
+  cookieValue: string,
   secret: string
 ): Promise<string | null> {
-  if (!cookieData || !secret) return null;
-
   try {
-    // If it's already an object, try to read it directly
-    if (typeof cookieData === 'object') {
-      return (cookieData as { user?: { id?: string } }).user?.id || null;
-    }
-
-    // If it's a string, try to decrypt it
-    if (typeof cookieData === 'string') {
-      // Check if it's a JSON string first (invalid for encrypted cookie)
-      if (cookieData.trim().startsWith('{') || cookieData.trim().startsWith('[')) {
-        return null;
-      }
-
-      const reader = new EdgeSessionReader(secret);
-      const session = await reader.decryptSession(cookieData);
-      return session?.user?.id || null;
-    }
-
-    return null;
+    // Use iron-session for full decryption
+    const sessionData = await unsealData<Session>(cookieValue, { password: secret });
+    return sessionData?.user?.id || null;
   } catch {
     return null;
   }

@@ -1,8 +1,41 @@
 # Migration Guide
 
-This guide helps you migrate from Weblogin Auth SDK v1.x to v2.0.
+This guide helps you migrate between major versions of the Weblogin Auth SDK.
 
-## Overview of Changes
+## Migrating from v2.x to v3.0
+
+Version 3.0 introduces built-in Identity Provider (IdP) presets for easier configuration.
+
+### IdP Configuration
+
+Instead of manually copying certificates and entry points, you can now use the `idps` export:
+
+```typescript
+// v2.x
+const auth = createWebLoginNext({
+  saml: {
+    issuer: 'my-app',
+    entryPoint: 'https://login.stanford.edu/...',
+    idpCert: 'MIIDnzCCAoegAwIBAgIJAJl9YtyaxKsZMA0GCSqGSIb3DQEBBQUAMGYxCzAJBgNV...',
+    // ...
+  }
+});
+
+// v3.0
+import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
+
+const auth = createWebLoginNext({
+  saml: {
+    issuer: 'my-app',
+    // Use presets for entryPoint and idpCert
+    entryPoint: idps.prod.entryPoint,
+    idpCert: idps.prod.cert,
+    // ...
+  }
+});
+```
+
+## Migrating from v1.x to v2.0
 
 Weblogin Auth SDK v2.0 introduces significant architectural improvements:
 

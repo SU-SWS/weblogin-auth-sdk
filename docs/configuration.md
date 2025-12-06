@@ -27,13 +27,15 @@ See [environment-variables.md](./environment-variables.md) for more information 
 For more control, you can configure the SDK programmatically:
 
 ```typescript
-import { createWebLoginNext } from 'weblogin-auth-sdk/next';
+import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
 
 const auth = createWebLoginNext({
   saml: {
     // Required
     issuer: 'your-saml-entity',
-    idpCert: 'your-idp-certificate',
+    // Use the production IdP preset
+    entryPoint: idps.prod.entryPoint,
+    idpCert: idps.prod.cert,
     returnToOrigin: 'https://your-app.com',
 
     // Optional
@@ -80,6 +82,29 @@ const auth = createWebLoginNext({
 ```
 
 ## SAML Configuration Options
+
+### Using IdP Presets
+
+The SDK includes built-in configurations for Stanford's Identity Providers (IdPs). You can import these presets to easily configure your application for different environments.
+
+```typescript
+import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
+
+const auth = createWebLoginNext({
+  saml: {
+    // ... other config
+    entryPoint: idps.prod.entryPoint, // Use production IdP
+    idpCert: idps.prod.cert,
+  },
+  // ...
+});
+```
+
+Available presets:
+- `idps.prod` (aliased as `idps.stanford`): Production IdP
+- `idps.uat`: User Acceptance Testing IdP
+- `idps.dev`: Development IdP
+- `idps.itlab`: IT Lab IdP
 
 ### Required Options
 

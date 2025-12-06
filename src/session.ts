@@ -17,7 +17,7 @@
  * @module session
  */
 
-import { getIronSession, sealData } from 'iron-session';
+import { getIronSession } from 'iron-session';
 import { Session, SessionConfig, User, Logger } from './types.js';
 import { AuthUtils } from './utils.js';
 import { DefaultLogger } from './logger.js';
@@ -176,26 +176,6 @@ export class SessionManager {
     if (this.config.secret.length < 32) {
       throw new Error('Session secret must be at least 32 characters long');
     }
-  }
-
-  /**
-   * Static method to seal session data into an encrypted cookie value
-   *
-   * Useful for testing or manual cookie creation.
-   *
-   * @param session - Session data to seal
-   * @param config - Session configuration
-   * @returns Promise resolving to encrypted cookie string
-   */
-  static async sealSession(session: Session, config: SessionConfig): Promise<string> {
-    if (!config.secret || config.secret.length < 32) {
-      throw new Error('Session secret must be at least 32 characters long');
-    }
-
-    return sealData(session, {
-      password: config.secret,
-      ttl: config.cookie?.maxAge || 0,
-    });
   }
 
   /**
@@ -515,97 +495,271 @@ export class SessionManager {
       issuedAt: Date.now(),
     });
   }
+
+  /**
+   * Create a sealed (encrypted) cookie value
+   *
+   * This static utility function creates an encrypted cookie value containing session data
+   * without setting any HTTP headers. This is useful for testing scenarios where you need
+   * the actual encrypted cookie string to simulate authenticated requests or for when
+   * you want to manually set the cookie in a different context.
+   *
+   * The returned string is what would normally be stored in the HTTP cookie, encrypted
+   * using iron-session's encryption algorithm.
+   *
+   * @param sessionData - The session data to encrypt
+   * @param config - Session configuration with name, secret, and cookie options
+   * @returns Promise resolving to the encrypted cookie value string
+   *
+   * @example
+   * ```typescript
+   * // Create test session data
+   * const sessionData: Session = {
+   *   user: { id: 'user123', email: 'test@stanford.edu' },
+   *   meta: { role: 'admin' },
+   *   issuedAt: Date.now(),
+   *   expiresAt: 0
+   * };
+   *
+   * // Generate encrypted cookie value for testing
+   * const sealedCookie = await SessionManager.sealSession(sessionData, {
+   *   name: 'test-session',
+   *   secret: 'your-32-character-secret-key!!'
+   * });
+   *
+   * // Use in test requests
+   * const response = await fetch('/api/protected', {
+   *   headers: {
+   *     'Cookie': `test-session=${sealedCookie}`
+   *   }
+   * });
+   * ```
+   *
+   * @throws {Error} If session secret is less than 32 characters or encryption fails
+   */
+  static async sealSession(sessionData: Session, config: SessionConfig): Promise<string> {
+    // Validate secret length
+    if (config.secret.length < 32) {
+      throw new Error('Session secret must be at least 32 characters long');
+    }
+
+    // Create a mock cookie store that captures the set cookie value
+    let sealedValue = '';
+    const mockCookieStore: CookieStore = {
+      get: () => undefined,
+      set: (name: string, value: string) => {
+        if (name === config.name) {
+          sealedValue = value;
+        }
+      }
+    };
+
+    try {
+      // Create temporary iron-session store
+      const ironStore = {
+        get: mockCookieStore.get,
+        set: mockCookieStore.set,
+      };
+
+      const sessionConfig = {
+        name: config.name,
+        secret: config.secret,
+        cookie: {
+          httpOnly: true,
+          secure: true,
+          sameSite: 'lax' as const,
+          path: '/',
+          maxAge: 0,
+          ...config.cookie,
+        }
+      };
+
+      // Get iron session and save the data
+      const session = await getIronSession<Session>(
+        ironStore as unknown as IronCookieStore,
+        {
+          cookieName: sessionConfig.name,
+          password: sessionConfig.secret,
+          cookieOptions: sessionConfig.cookie,
+        }
+      );
+
+      // Set session data
+      Object.assign(session, sessionData);
+      await session.save();
+
+      if (!sealedValue) {
+        throw new Error('Failed to generate sealed cookie value');
+      }
+
+      return sealedValue;
+    } catch (error) {
+      throw new Error(`Failed to seal session: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
 }
 
 /**
- * Create a cookie store for Express.js
+ * Create a cookie store adapter for Express.js
  *
- * Adapts Express request/response objects to the CookieStore interface.
+ * Adapts Express.js request/response cookie handling to the CookieStore interface.
  *
- * @param req - Express Request object
- * @param res - Express Response object
- * @returns CookieStore implementation for Express
+ * @param req - Express.js request object with cookies property
+ * @param res - Express.js response object with cookie methods
+ * @returns CookieStore implementation for Express.js
+ *
+ * @example
+ * ```typescript
+ * // In Express.js route handler
+ * app.post('/login', async (req, res) => {
+ *   const cookieStore = createExpressCookieStore(req, res);
+ *   const sessionManager = new SessionManager(cookieStore, config);
+ *
+ *   await sessionManager.createSession(user);
+ *   res.redirect('/dashboard');
+ * });
+ * ```
  */
-export function createExpressCookieStore(
-  req: { cookies?: Record<string, string> },
-  res: { cookie: (name: string, value: string, options?: CookieOptions) => void; clearCookie: (name: string) => void }
-): CookieStore {
+export function createExpressCookieStore(req: unknown, res: unknown): CookieStore {
+  const request = req as { cookies?: Record<string, string> };
+  const response = res as { cookie: (name: string, value: string, options?: CookieOptions) => void; clearCookie: (name: string) => void };
+
   return {
     get: (name: string) => {
-      const value = req.cookies?.[name];
+      const value = request.cookies?.[name];
       return value ? { name, value } : undefined;
     },
     set: (name: string, value: string, options?: CookieOptions) => {
-      res.cookie(name, value, options);
+      response.cookie(name, value, options);
     },
     delete: (name: string) => {
-      res.clearCookie(name);
+      response.clearCookie(name);
     },
   };
 }
 
 /**
- * Create a cookie store for Web API (Request/Response)
+ * Create a cookie store adapter for Web API Request/Response
  *
  * Adapts Web API Request/Response objects to the CookieStore interface.
- * Note: This implementation modifies the Response headers directly.
+ * Suitable for use in serverless functions, Cloudflare Workers, etc.
  *
  * @param request - Web API Request object
- * @param response - Web API Response object
+ * @param response - Web API Response object (mutable)
  * @returns CookieStore implementation for Web API
+ *
+ * @example
+ * ```typescript
+ * // In API route handler
+ * export async function POST(request: Request) {
+ *   const response = new Response();
+ *   const cookieStore = createWebCookieStore(request, response);
+ *   const sessionManager = new SessionManager(cookieStore, config);
+ *
+ *   await sessionManager.createSession(user);
+ *   return Response.redirect('/dashboard', {
+ *     headers: response.headers
+ *   });
+ * }
+ * ```
  */
 export function createWebCookieStore(request: Request, response: Response): CookieStore {
+  const cookies = new Map<string, string>();
+
+  // Parse existing cookies from request
+  const cookieHeader = request.headers.get('cookie');
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach(cookie => {
+      const [name, value] = cookie.trim().split('=');
+      if (name && value) {
+        cookies.set(name, decodeURIComponent(value));
+      }
+    });
+  }
+
   return {
     get: (name: string) => {
-      const cookieHeader = request.headers.get('cookie');
-      if (!cookieHeader) return undefined;
-
-      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
-        const [key, val] = cookie.trim().split('=');
-        acc[key] = decodeURIComponent(val);
-        return acc;
-      }, {} as Record<string, string>);
-
-      const value = cookies[name];
+      const value = cookies.get(name);
       return value ? { name, value } : undefined;
     },
     set: (name: string, value: string, options?: CookieOptions) => {
+      cookies.set(name, value);
+
+      // Build cookie string
       let cookieString = `${name}=${encodeURIComponent(value)}`;
 
-      if (options?.httpOnly) cookieString += '; HttpOnly';
-      if (options?.secure) cookieString += '; Secure';
-      if (options?.sameSite) cookieString += `; SameSite=${options.sameSite}`;
-      if (options?.path) cookieString += `; Path=${options.path}`;
-      if (options?.domain) cookieString += `; Domain=${options.domain}`;
-      if (options?.maxAge) cookieString += `; Max-Age=${options.maxAge}`;
-      if (options?.expires) cookieString += `; Expires=${options.expires.toUTCString()}`;
+      if (options) {
+        if (options.httpOnly) cookieString += '; HttpOnly';
+        if (options.secure) cookieString += '; Secure';
+        if (options.sameSite) cookieString += `; SameSite=${options.sameSite}`;
+        if (options.path) cookieString += `; Path=${options.path}`;
+        if (options.domain) cookieString += `; Domain=${options.domain}`;
+        if (options.maxAge) cookieString += `; Max-Age=${options.maxAge}`;
+        if (options.expires) cookieString += `; Expires=${options.expires.toUTCString()}`;
+      }
 
-      response.headers.append('Set-Cookie', cookieString);
+      // Set cookie header on response
+      const existingCookies = response.headers.get('set-cookie') || '';
+      const newCookies = existingCookies ? `${existingCookies}, ${cookieString}` : cookieString;
+      response.headers.set('set-cookie', newCookies);
     },
-    delete: (name: string) => {
-      response.headers.append('Set-Cookie', `${name}=; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`);
-    }
   };
 }
 
 /**
- * Check if user is authenticated (Client-side utility)
+ * Client-side utility to check if user is authenticated
  *
- * Checks for the existence of the JavaScript-accessible session boolean cookie.
- * This allows client-side code to know if a user is logged in without making a request.
+ * Reads the JavaScript-accessible session cookie to determine authentication status.
+ * This provides a way to check authentication from client-side code without
+ * making server requests.
  *
- * @param sessionName - Name of the session (default: 'weblogin-auth-session')
- * @returns True if session cookie exists and is 'true'
+ * The function looks for a boolean cookie created by SessionManager that indicates
+ * whether a valid session exists.
+ *
+ * @param sessionName - The base session name (without -session suffix)
+ * @returns boolean indicating if the user is authenticated
+ *
+ * @example
+ * ```typescript
+ * // In React component or client-side code
+ * import { isAuthenticated } from 'weblogin-auth-sdk';
+ *
+ * function MyComponent() {
+ *   const isLoggedIn = isAuthenticated('weblogin-auth');
+ *
+ *   return (
+ *     <div>
+ *       {isLoggedIn ? (
+ *         <p>Welcome back!</p>
+ *       ) : (
+ *         <a href="/login">Please log in</a>
+ *       )}
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @remarks
+ * - This function only works in browser environments
+ * - Returns false in server-side environments
+ * - The cookie is set automatically by SessionManager.createSession()
+ * - This is a lightweight check - full session validation requires server-side code
  */
-export function isAuthenticated(sessionName: string = 'weblogin-auth-session'): boolean {
-  if (typeof document === 'undefined') return false;
+export function isAuthenticated(sessionName: string): boolean {
+  if (typeof document === 'undefined') {
+    // Not in browser environment
+    return false;
+  }
 
   const jsCookieName = `${sessionName}-session`;
-  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-    const [key, val] = cookie.trim().split('=');
-    acc[key] = val;
-    return acc;
-  }, {} as Record<string, string>);
+  const cookies = document.cookie.split(';');
 
-  return cookies[jsCookieName] === 'true';
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === jsCookieName && value === 'true') {
+      return true;
+    }
+  }
+
+  return false;
 }

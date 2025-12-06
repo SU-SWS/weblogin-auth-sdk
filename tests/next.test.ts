@@ -15,6 +15,11 @@ jest.mock('next/headers', () => ({
   cookies: jest.fn(() => Promise.resolve(mockNextCookies))
 }));
 
+// Mock Next.js navigation
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn()
+}));
+
 // Mock SAMLProvider
 jest.mock('../src/saml');
 const MockedSAMLProvider = SAMLProvider as jest.MockedClass<typeof SAMLProvider>;
@@ -306,24 +311,27 @@ describe('WebLoginNext', () => {
   });
 
   describe('login', () => {
-    it('should delegate to SAML provider login', async () => {
-      const mockResponse = new Response('', { status: 302 });
-      mockSamlProvider.login.mockResolvedValue(mockResponse);
+    it('should delegate to SAML provider login and redirect', async () => {
+      const loginUrl = 'https://idp.stanford.edu/login';
+      mockSamlProvider.getLoginUrl.mockResolvedValue(loginUrl);
 
       const options = { returnTo: '/dashboard' };
-      const result = await webLoginNext.login(options);
+      await webLoginNext.login(options);
 
-      expect(mockSamlProvider.login).toHaveBeenCalledWith(options);
-      expect(result).toBe(mockResponse);
+      expect(mockSamlProvider.getLoginUrl).toHaveBeenCalledWith(options);
+      const { redirect } = require('next/navigation');
+      expect(redirect).toHaveBeenCalledWith(loginUrl);
     });
 
     it('should handle login with default options', async () => {
-      const mockResponse = new Response('', { status: 302 });
-      mockSamlProvider.login.mockResolvedValue(mockResponse);
+      const loginUrl = 'https://idp.stanford.edu/login';
+      mockSamlProvider.getLoginUrl.mockResolvedValue(loginUrl);
 
       await webLoginNext.login();
 
-      expect(mockSamlProvider.login).toHaveBeenCalledWith({});
+      expect(mockSamlProvider.getLoginUrl).toHaveBeenCalledWith({});
+      const { redirect } = require('next/navigation');
+      expect(redirect).toHaveBeenCalledWith(loginUrl);
     });
   });
 

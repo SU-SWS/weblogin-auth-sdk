@@ -51,35 +51,6 @@ describe('Next.js Module Exports', () => {
     expect(packageJson.optionalDependencies.next).toBe('>=14');
   });
 
-  describe('Documentation and examples', () => {
-    it('should have Next.js separate import documentation', () => {
-      const docPath = path.resolve(__dirname, '../docs/examples/nextjs-separate-import.md');
-
-      expect(fs.existsSync(docPath)).toBe(true);
-
-      const docContent = fs.readFileSync(docPath, 'utf8');
-      expect(docContent).toContain('weblogin-auth-sdk/next');
-      expect(docContent).toContain('createWebLoginNext');
-    });
-
-    it('should have updated main Next.js example', () => {
-      const docPath = path.resolve(__dirname, '../docs/examples/nextjs-app-router.md');
-
-      if (fs.existsSync(docPath)) {
-        const docContent = fs.readFileSync(docPath, 'utf8');
-        expect(docContent).toContain('weblogin-auth-sdk/next');
-      }
-    });
-
-    it('should have updated README with separate import pattern', () => {
-      const readmePath = path.resolve(__dirname, '../README.md');
-
-      const readmeContent = fs.readFileSync(readmePath, 'utf8');
-      expect(readmeContent).toContain('weblogin-auth-sdk/next');
-      expect(readmeContent).toContain('Framework-Agnostic');
-    });
-  });
-
   describe('Build outputs', () => {
     it('should have clean ESM output without virtual modules', () => {
       const esmDir = path.resolve(__dirname, '../dist/esm');

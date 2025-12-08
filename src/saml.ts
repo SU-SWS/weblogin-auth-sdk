@@ -445,6 +445,28 @@ export class SAMLProvider {
   }
 
   /**
+   * Generate SAML Service Provider Metadata
+   *
+   * Creates the XML metadata for this Service Provider to be shared with the Identity Provider.
+   * This metadata includes the Entity ID, ACS URL, and optional certificates for signing/encryption.
+   *
+   * @param decryptionCert - Optional public certificate for encryption (PEM format)
+   * @param signingCert - Optional public certificate for signing (PEM format)
+   * @returns SAML Metadata XML string
+   *
+   * @example
+   * ```typescript
+   * const metadata = samlProvider.getMetadata(
+   *   fs.readFileSync('sp-cert.pem', 'utf8'),
+   *   fs.readFileSync('sp-cert.pem', 'utf8')
+   * );
+   * ```
+   */
+  getMetadata(decryptionCert?: string, signingCert?: string): string {
+    return this.provider.generateServiceProviderMetadata(decryptionCert, signingCert);
+  }
+
+  /**
    * Process RelayState to extract returnTo URL
    *
    * Parses and validates the RelayState parameter from SAML response:

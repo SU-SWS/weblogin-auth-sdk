@@ -172,6 +172,21 @@ const sessionManager = new SessionManager(cookieStore, sessionConfig);
 
 ## Advanced SAML Configuration
 
+### Generating Service Provider Metadata
+
+You can generate the SAML Service Provider metadata XML for your application, which is often required when registering your SP with an Identity Provider.
+
+```typescript
+// Generate metadata without certificates
+const metadata = samlProvider.getMetadata();
+
+// Generate metadata with encryption and signing certificates
+const metadataWithCerts = samlProvider.getMetadata(
+  fs.readFileSync('decryption-cert.pem', 'utf8'),
+  fs.readFileSync('signing-cert.pem', 'utf8')
+);
+```
+
 ### Custom Attribute Mapping
 
 Map complex SAML attributes to your user model:

@@ -65,7 +65,7 @@ export interface RequiredSamlConfig {
   /**
    * IdP certificate for validating SAML responses (required)
    */
-  idpCert: string;
+  idpCert: string | string[];
 
   /**
    * Base URL of your application where SAML responses are received (required)

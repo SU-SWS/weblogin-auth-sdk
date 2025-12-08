@@ -22,8 +22,7 @@ const auth = createWebLoginNext({
 });
 
 // v3.0
-import { createWebLoginNext } from 'weblogin-auth-sdk/next';
-import { idps } from 'weblogin-auth-sdk';
+import { createWebLoginNext, idps } from 'weblogin-auth-sdk';
 
 const auth = createWebLoginNext({
   saml: {

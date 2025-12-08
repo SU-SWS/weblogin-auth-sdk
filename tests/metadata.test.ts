@@ -15,7 +15,7 @@ describe('SAMLProvider Metadata', () => {
 
   test('should generate metadata', () => {
     const provider = new SAMLProvider(validConfig, logger);
-    
+
     // Mock the underlying provider's generateServiceProviderMetadata
     const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor>...</EntityDescriptor>');
     (provider as any).provider = {
@@ -23,14 +23,14 @@ describe('SAMLProvider Metadata', () => {
     };
 
     const metadata = provider.getMetadata();
-    
+
     expect(metadata).toBe('<EntityDescriptor>...</EntityDescriptor>');
-    expect(mockGenerateMetadata).toHaveBeenCalledWith(undefined, undefined);
+    expect(mockGenerateMetadata).toHaveBeenCalledWith(null, null);
   });
 
   test('should generate metadata with certificates', () => {
     const provider = new SAMLProvider(validConfig, logger);
-    
+
     const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor>...</EntityDescriptor>');
     (provider as any).provider = {
       generateServiceProviderMetadata: mockGenerateMetadata,
@@ -40,7 +40,7 @@ describe('SAMLProvider Metadata', () => {
     const signingCert = 'signing-cert';
 
     const metadata = provider.getMetadata(decryptionCert, signingCert);
-    
+
     expect(metadata).toBe('<EntityDescriptor>...</EntityDescriptor>');
     expect(mockGenerateMetadata).toHaveBeenCalledWith(decryptionCert, signingCert);
   });

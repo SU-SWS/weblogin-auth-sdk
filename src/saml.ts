@@ -463,7 +463,7 @@ export class SAMLProvider {
    * ```
    */
   getMetadata(decryptionCert?: string, signingCert?: string): string {
-    return this.provider.generateServiceProviderMetadata(decryptionCert, signingCert);
+    return this.provider.generateServiceProviderMetadata(decryptionCert ?? null, signingCert ?? null);
   }
 
   /**

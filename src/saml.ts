@@ -53,6 +53,9 @@ const OID_MAP: Record<string, string> = {
   'urn:oid:1.3.6.1.4.1.5923.1.1.1.7': 'eduPersonEntitlement',
   'urn:oid:1.3.6.1.4.1.5923.1.1.1.9': 'eduPersonScopedAffiliation',
   'urn:oid:1.3.6.1.4.1.5923.1.1.1.10': 'eduPersonTargetedID',
+  'urn:oid:1.3.6.1.4.1.5923.1.1.1.16': 'eduPersonOrcid',
+  'urn:oasis:names:tc:SAML:attribute:subject-id': 'subject-id',
+  'urn:oasis:names:tc:SAML:attribute:pairwise-id': 'pairwise-id',
   'urn:oid:2.5.4.3': 'cn',
   'urn:oid:2.5.4.4': 'sn',
   'urn:oid:2.5.4.9': 'street',
@@ -270,23 +273,38 @@ export class SAMLProvider {
    */
   async getLoginUrl(options: LoginOptions = {}): Promise<string> {
     try {
-      const { returnTo, ...additionalParams } = options;
+      const { returnTo, forceAuthn, mfa, ...additionalParams } = options;
       const payload: RelayStatePayload = {
         return_to: returnTo || '/',
       };
       const relayState = JSON.stringify(payload);
 
+      const authorizeOptions: Record<string, unknown> = {
+        ...this.config.additionalAuthorizeParams,
+        ...additionalParams
+      };
+
+      if (forceAuthn !== undefined) {
+        authorizeOptions.forceAuthn = forceAuthn;
+      }
+
+      if (mfa) {
+        authorizeOptions.authnContext = [mfa];
+      }
+
       // Generate SAML AuthnRequest URL
       const loginUrl = await this.provider.getAuthorizeUrlAsync(
         relayState,
         undefined,
-        { ...this.config.additionalAuthorizeParams, ...additionalParams }
+        authorizeOptions
       );
 
       this.logger.debug('Generated login URL', {
         hasRelayState: !!relayState,
         return_to: payload.return_to,
         loginUrl: loginUrl.split('?')[0], // Log URL without parameters for security
+        forceAuthn,
+        mfa,
       });
 
       return loginUrl;
@@ -463,7 +481,19 @@ export class SAMLProvider {
    * ```
    */
   getMetadata(decryptionCert?: string, signingCert?: string): string {
-    return this.provider.generateServiceProviderMetadata(decryptionCert ?? null, signingCert ?? null);
+    let metadata = this.provider.generateServiceProviderMetadata(decryptionCert ?? null, signingCert ?? null);
+
+    // Add validUntil attribute to EntityDescriptor (valid for 1 year)
+    const validUntil = new Date();
+    validUntil.setFullYear(validUntil.getFullYear() + 1);
+
+    // Simple string replacement to inject validUntil
+    metadata = metadata.replace(
+      '<EntityDescriptor',
+      `<EntityDescriptor validUntil="${validUntil.toISOString()}"`
+    );
+
+    return metadata;
   }
 
   /**

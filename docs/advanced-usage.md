@@ -342,3 +342,54 @@ const auth = createWebLoginNext({
   logger: new ApplicationLogger(winston, Sentry),
 });
 ```
+
+## Stanford-Specific Features
+
+### Multi-Factor Authentication (MFA)
+
+You can request specific MFA contexts or force re-authentication using the `login` method options.
+
+```typescript
+import { MFA } from 'weblogin-auth-sdk';
+
+// Force re-authentication at the IdP
+await auth.login({
+  forceAuthn: true
+});
+
+// Request REFEDS MFA Profile
+await auth.login({
+  mfa: MFA.REFEDS
+});
+
+// Request Cardinal Key MFA
+await auth.login({
+  mfa: MFA.CARDINAL_KEY
+});
+
+// Combine options
+await auth.login({
+  returnTo: '/sensitive-area',
+  forceAuthn: true,
+  mfa: MFA.FORCED
+});
+```
+
+### Extended Attribute Mapping
+
+The SDK automatically maps the following additional attributes if released by the IdP:
+
+- `eduPersonOrcid` (`urn:oid:1.3.6.1.4.1.5923.1.1.1.16`)
+- `subject-id` (`urn:oasis:names:tc:SAML:attribute:subject-id`)
+- `pairwise-id` (`urn:oasis:names:tc:SAML:attribute:pairwise-id`)
+
+These will be available in the `user` object returned by `authenticate` or `getSession`.
+
+### Metadata Enhancements
+
+The `getMetadata` method automatically injects a `validUntil` attribute (set to 1 year from generation) into the `EntityDescriptor`, as recommended by Stanford's SPDB guidelines.
+
+```typescript
+const metadata = auth.getMetadata();
+// Output includes: <EntityDescriptor validUntil="2025-..." ...>
+```

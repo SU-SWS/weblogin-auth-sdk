@@ -1,5 +1,4 @@
 import { WebLoginNext } from '../src/next';
-import { DefaultLogger } from '../src/logger';
 import type { WebLoginNextConfig } from '../src/types';
 
 // Mock next/headers

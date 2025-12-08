@@ -330,10 +330,41 @@ export type AuthCallbacks = {
 };
 
 /**
+ * MFA Context Class References for Stanford
+ */
+export enum MFA {
+  /**
+   * REFEDS MFA Profile
+   * Requires multi-factor authentication
+   */
+  REFEDS = 'https://refeds.org/profile/mfa',
+
+  /**
+   * Cardinal Key MFA Profile
+   * Requires authentication via Cardinal Key
+   */
+  CARDINAL_KEY = 'https://saml.stanford.edu/profile/mfa/cardinalkey',
+
+  /**
+   * Forced MFA Profile
+   * Forces multi-factor authentication even if already authenticated
+   */
+  FORCED = 'https://saml.stanford.edu/profile/mfa/forced',
+}
+
+/**
  * Login options
  */
 export type LoginOptions = {
   returnTo?: string;
+  /**
+   * Force re-authentication at the IdP
+   */
+  forceAuthn?: boolean;
+  /**
+   * Request specific MFA context
+   */
+  mfa?: MFA | string;
   [key: string]: unknown;
 };
 

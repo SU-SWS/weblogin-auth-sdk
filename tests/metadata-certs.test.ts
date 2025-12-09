@@ -4,7 +4,7 @@ import { SamlConfig } from '../src/types';
 describe('SAMLProvider Metadata Certificates', () => {
   const mockCert = '-----BEGIN CERTIFICATE-----\nMIID...\n-----END CERTIFICATE-----';
   const mockDecryptionCert = '-----BEGIN CERTIFICATE-----\nMIIE...\n-----END CERTIFICATE-----';
-  
+
   const baseConfig: SamlConfig = {
     issuer: 'test-issuer',
     idpCert: 'idp-cert',
@@ -22,10 +22,10 @@ describe('SAMLProvider Metadata Certificates', () => {
     // Since we passed dummy strings, node-saml might just put them in.
     // However, node-saml might try to clean them.
     // Let's just check if the metadata string contains parts of our mock certs.
-    
+
     // Note: node-saml generateServiceProviderMetadata puts the cert in <ds:X509Certificate>
     // It might strip the headers.
-    
+
     expect(metadata).toContain('MIID...');
     expect(metadata).toContain('MIIE...');
   });
@@ -34,7 +34,7 @@ describe('SAMLProvider Metadata Certificates', () => {
     const provider = new SAMLProvider(baseConfig);
     const argCert = '-----BEGIN CERTIFICATE-----\nARG_SIGNING...\n-----END CERTIFICATE-----';
     const argDecryptionCert = '-----BEGIN CERTIFICATE-----\nARG_DECRYPT...\n-----END CERTIFICATE-----';
-    
+
     const metadata = provider.getMetadata(argDecryptionCert, argCert);
 
     expect(metadata).toContain('ARG_SIGNING...');

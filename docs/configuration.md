@@ -114,6 +114,8 @@ Available presets:
 | `issuer` | `string` | Your SAML entity ID - Usually a URL |
 | `idpCert` | `string` | The IdP certificate for validating SAML responses |
 | `returnToOrigin` | `string` | The base URL of your application |
+| `privateKey` | `string` | Private key for SAML signing |
+| `cert` | `string` | Public certificate for SAML signing (PEM format) |
 
 ### Optional Options
 
@@ -126,9 +128,25 @@ Available presets:
 | `wantAssertionsSigned` | `boolean` | `true` | Require signed SAML assertions |
 | `wantAuthnResponseSigned` | `boolean` | `true` | Require signed SAML responses |
 | `acceptedClockSkewMs` | `number` | `60000` | Allowed clock skew in milliseconds |
-| `skipRequestAcsUrl` | `boolean` | `false` | Skip ACS URL validation in AuthnRequest (useful for dynamic deployments) |
-| `cert` | `string` | `undefined` | Public certificate for SAML signing (PEM format) |
+| `skipRequestAcsUrl` | `boolean` | `true` | Skip ACS URL validation in AuthnRequest (useful for dynamic deployments) |
 | `decryptionCert` | `string` | `undefined` | Public certificate for SAML decryption (PEM format) |
+| `signatureAlgorithm` | `string` | `'sha256'` | SAML signature algorithm ('sha1', 'sha256', 'sha512') |
+| `digestAlgorithm` | `string` | `'sha1'` | SAML digest algorithm ('sha1', 'sha256', 'sha512') |
+| `identifierFormat` | `string` | `transient` | SAML identifier format |
+| `allowCreate` | `boolean` | `false` | Allow creation of new accounts |
+| `spNameQualifier` | `string` | `undefined` | Service Provider Name Qualifier |
+| `authnContext` | `string` | `undefined` | Requested Authentication Context |
+| `forceAuthn` | `boolean` | `undefined` | Force Authentication |
+| `passive` | `boolean` | `undefined` | Passive Authentication |
+| `providerName` | `string` | `undefined` | Provider Name |
+| `skipRequestCompression` | `boolean` | `undefined` | Skip Request Compression |
+| `authnRequestBinding` | `string` | `'HTTP-Redirect'` | Authentication Request Binding |
+| `signMetadata` | `boolean` | `undefined` | Sign Metadata |
+| `validateInResponseTo` | `string` | `'never'` | Validate InResponseTo ('always', 'never', 'ifPresent') |
+| `requestIdExpirationPeriodMs` | `number` | `28800000` | Request ID Expiration Period in milliseconds |
+| `idpIssuer` | `string` | `undefined` | IDP Issuer |
+| `logoutUrl` | `string` | `entryPoint` | IDP Logout URL |
+| `logoutCallbackUrl` | `string` | `undefined` | IDP Logout Callback URL |
 
 ## Session Configuration Options
 

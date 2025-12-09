@@ -21,6 +21,8 @@ describe('SAMLProvider', () => {
     returnToOrigin: 'https://app.example.com',
     entryPoint: 'https://idp.example.com/sso',
     returnToPath: '/auth/callback',
+    privateKey: 'test-private-key',
+    cert: 'test-public-cert',
   };
 
   const logger = new DefaultLogger();
@@ -308,7 +310,7 @@ describe('SAMLProvider', () => {
         sn: 'OIDSurname',
         displayName: 'OID Display Name',
       });
-      
+
       expect(result.user.name).toBe('OID Display Name');
     });
 

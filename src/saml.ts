@@ -145,23 +145,18 @@ export class SAMLProvider {
       ? rawIdpCert.map(c => AuthUtils.formatKey(c))
       : AuthUtils.formatKey(rawIdpCert as string);
 
-    // Determine private key (prioritize explicit config, then env, then fallback to idpCert)
-    let rawPrivateKey = config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY;
-    if (!rawPrivateKey) {
-      // If no private key specified, try to use idpCert (if it's a string)
-      if (typeof config.idpCert === 'string') {
-        rawPrivateKey = config.idpCert;
-      } else if (process.env.WEBLOGIN_AUTH_SAML_CERT) {
-        rawPrivateKey = process.env.WEBLOGIN_AUTH_SAML_CERT;
-      }
-    }
+    // Determine private key (prioritize explicit config, then env)
+    const rawPrivateKey = config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY;
     const privateKey = AuthUtils.formatKey(rawPrivateKey || '');
 
     const decryptionPvk = AuthUtils.formatKey(
       config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY || ''
     );
 
-    const cert = config.cert ? AuthUtils.formatKey(config.cert) : undefined;
+    // Determine public cert (prioritize explicit config, then env)
+    const rawCert = config.cert || process.env.WEBLOGIN_AUTH_SAML_SP_CERT;
+    const cert = AuthUtils.formatKey(rawCert || '');
+
     const decryptionCert = config.decryptionCert ? AuthUtils.formatKey(config.decryptionCert) : undefined;
 
     // Build configuration with defaults and environment variable fallbacks
@@ -170,12 +165,12 @@ export class SAMLProvider {
       issuer: config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || process.env.WEBLOGIN_AUTH_SAML_ENTITY,
       idpCert,
       returnToOrigin: config.returnToOrigin || process.env.WEBLOGIN_AUTH_ACS_URL_ORIGIN || process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN,
+      privateKey,
+      cert,
 
       // Optional fields with sensible defaults
       audience: config.audience || `https://${config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || 'weblogin'}.stanford.edu`,
-      privateKey,
       decryptionPvk,
-      cert,
       decryptionCert,
 
       // IDP Entry Point
@@ -188,18 +183,45 @@ export class SAMLProvider {
 
       // SAML protocol settings with secure defaults
       signatureAlgorithm: config.signatureAlgorithm || 'sha256',
+      digestAlgorithm: config.digestAlgorithm,
+      xmlSignatureTransforms: config.xmlSignatureTransforms,
       identifierFormat: config.identifierFormat || 'urn:oasis:names:tc:SAML:2.0:nameid-format:transient',
       allowCreate: config.allowCreate ?? false,
+      spNameQualifier: config.spNameQualifier,
       wantAssertionsSigned: config.wantAssertionsSigned ?? true,
       wantAuthnResponseSigned: config.wantAuthnResponseSigned ?? true,
       acceptedClockSkewMs: config.acceptedClockSkewMs ?? 60000,
+      maxAssertionAgeMs: config.maxAssertionAgeMs,
+      attributeConsumingServiceIndex: config.attributeConsumingServiceIndex,
+      disableRequestedAuthnContext: config.disableRequestedAuthnContext,
+      authnContext: config.authnContext,
+      racComparison: config.racComparison,
+      forceAuthn: config.forceAuthn,
+      passive: config.passive,
+      providerName: config.providerName,
+      skipRequestCompression: config.skipRequestCompression,
+      authnRequestBinding: config.authnRequestBinding,
+      generateUniqueId: config.generateUniqueId,
+      scoping: config.scoping,
+      signMetadata: config.signMetadata,
+      validateInResponseTo: config.validateInResponseTo,
+      requestIdExpirationPeriodMs: config.requestIdExpirationPeriodMs,
+      cacheProvider: config.cacheProvider,
+      idpIssuer: config.idpIssuer,
+      logoutUrl: config.logoutUrl,
+      logoutCallbackUrl: config.logoutCallbackUrl,
+      samlAuthnRequestExtensions: config.samlAuthnRequestExtensions,
+      samlLogoutRequestExtensions: config.samlLogoutRequestExtensions,
+      metadataContactPerson: config.metadataContactPerson,
+      metadataOrganization: config.metadataOrganization,
 
       // Additional parameters with defaults
       additionalParams: config.additionalParams || {},
       additionalAuthorizeParams: config.additionalAuthorizeParams || {},
+      additionalLogoutParams: config.additionalLogoutParams || {},
 
       // Skip ACS URL validation in AuthnRequest
-      skipRequestAcsUrl: config.skipRequestAcsUrl ?? false,
+      skipRequestAcsUrl: config.skipRequestAcsUrl ?? true,
     };
 
     // Store the merged configuration
@@ -217,7 +239,7 @@ export class SAMLProvider {
       issuer: samlConfig.issuer,
       idpCert: samlConfig.idpCert,
       audience: samlConfig.audience,
-      privateKey: samlConfig.privateKey || undefined,
+      privateKey: samlConfig.privateKey,
       decryptionPvk: samlConfig.decryptionPvk || undefined,
       identifierFormat: samlConfig.identifierFormat,
       wantAssertionsSigned: samlConfig.wantAssertionsSigned,
@@ -226,12 +248,46 @@ export class SAMLProvider {
       allowCreate: samlConfig.allowCreate,
       callbackUrl: callbackUrl,
       disableRequestAcsUrl: samlConfig.skipRequestAcsUrl,
+
+      // New options
+      publicCert: samlConfig.cert,
+      signatureAlgorithm: samlConfig.signatureAlgorithm,
+      digestAlgorithm: samlConfig.digestAlgorithm,
+      xmlSignatureTransforms: samlConfig.xmlSignatureTransforms,
+      spNameQualifier: samlConfig.spNameQualifier,
+      maxAssertionAgeMs: samlConfig.maxAssertionAgeMs,
+      attributeConsumingServiceIndex: samlConfig.attributeConsumingServiceIndex,
+      disableRequestedAuthnContext: samlConfig.disableRequestedAuthnContext,
+      authnContext: samlConfig.authnContext,
+      racComparison: samlConfig.racComparison,
+      forceAuthn: samlConfig.forceAuthn,
+      passive: samlConfig.passive,
+      providerName: samlConfig.providerName,
+      skipRequestCompression: samlConfig.skipRequestCompression,
+      authnRequestBinding: samlConfig.authnRequestBinding,
+      generateUniqueId: samlConfig.generateUniqueId,
+      scoping: samlConfig.scoping,
+      signMetadata: samlConfig.signMetadata,
+      validateInResponseTo: samlConfig.validateInResponseTo,
+      requestIdExpirationPeriodMs: samlConfig.requestIdExpirationPeriodMs,
+      cacheProvider: samlConfig.cacheProvider,
+      idpIssuer: samlConfig.idpIssuer,
+      logoutUrl: samlConfig.logoutUrl,
+      logoutCallbackUrl: samlConfig.logoutCallbackUrl,
+      samlAuthnRequestExtensions: samlConfig.samlAuthnRequestExtensions,
+      samlLogoutRequestExtensions: samlConfig.samlLogoutRequestExtensions,
+      metadataContactPerson: samlConfig.metadataContactPerson,
+      metadataOrganization: samlConfig.metadataOrganization,
+
       // Convert additionalParams to strings for node-saml compatibility
       additionalParams: Object.fromEntries(
         Object.entries(samlConfig.additionalParams).map(([k, v]) => [k, String(v)])
       ),
       additionalAuthorizeParams: Object.fromEntries(
         Object.entries(samlConfig.additionalAuthorizeParams).map(([k, v]) => [k, String(v)])
+      ),
+      additionalLogoutParams: Object.fromEntries(
+        Object.entries(samlConfig.additionalLogoutParams).map(([k, v]) => [k, String(v)])
       ),
     };
 
@@ -256,7 +312,7 @@ export class SAMLProvider {
    * @private
    */
   private validateConfig(): void {
-    const required = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin'];
+    const required = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin', 'privateKey', 'cert'];
     const missing = required.filter(key => {
       const value = this.config[key as keyof SamlConfig];
       return !value || (typeof value === 'string' && value.trim() === '');

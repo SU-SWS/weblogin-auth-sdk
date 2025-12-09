@@ -71,6 +71,19 @@ export interface RequiredSamlConfig {
    * Base URL of your application where SAML responses are received (required)
    */
   returnToOrigin: string;
+
+  /**
+   * Private key for SAML signing (required)
+   * @default process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY
+   */
+  privateKey: string;
+
+  /**
+   * Public certificate for SAML signing (PEM format) (required)
+   * Used for generating Service Provider metadata
+   * @default process.env.WEBLOGIN_AUTH_SAML_SP_CERT
+   */
+  cert: string;
 }
 
 /**
@@ -90,22 +103,10 @@ export interface OptionalSamlConfig {
   includeReturnTo?: boolean;
 
   /**
-   * Private key for SAML signing (if different from idpCert)
-   * @default process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY || idpCert
-   */
-  privateKey?: string;
-
-  /**
    * Private key for SAML decryption
    * @default process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY
    */
   decryptionPvk?: string;
-
-  /**
-   * Public certificate for SAML signing (PEM format)
-   * Used for generating Service Provider metadata
-   */
-  cert?: string;
 
   /**
    * Public certificate for SAML decryption (PEM format)
@@ -141,7 +142,18 @@ export interface OptionalSamlConfig {
    * SAML signature algorithm
    * @default 'sha256'
    */
-  signatureAlgorithm?: string;
+  signatureAlgorithm?: 'sha1' | 'sha256' | 'sha512';
+
+  /**
+   * SAML digest algorithm
+   * @default 'sha1'
+   */
+  digestAlgorithm?: 'sha1' | 'sha256' | 'sha512';
+
+  /**
+   * XML Signature Transforms
+   */
+  xmlSignatureTransforms?: string[];
 
   /**
    * SAML identifier format
@@ -156,6 +168,11 @@ export interface OptionalSamlConfig {
   allowCreate?: boolean;
 
   /**
+   * Service Provider Name Qualifier
+   */
+  spNameQualifier?: string;
+
+  /**
    * Additional parameters for SAML requests
    * @default {}
    */
@@ -168,17 +185,151 @@ export interface OptionalSamlConfig {
   additionalAuthorizeParams?: Record<string, unknown>;
 
   /**
+   * Additional logout parameters
+   */
+  additionalLogoutParams?: Record<string, unknown>;
+
+  /**
    * IDP Entry Point URL
    * @default 'https://idp.stanford.edu/idp/profile/SAML2/Redirect/SSO'
    */
   entryPoint?: string;
 
   /**
+   * IDP Logout URL
+   * @default entryPoint
+   */
+  logoutUrl?: string;
+
+  /**
+   * IDP Logout Callback URL
+   */
+  logoutCallbackUrl?: string;
+
+  /**
    * Skip validation of the Assertion Consumer Service URL in the AuthnRequest.
    * This is useful for deployments with dynamic URLs (e.g. Vercel preview deployments).
-   * @default false
+   * @default true
    */
   skipRequestAcsUrl?: boolean;
+
+  /**
+   * Max Assertion Age in milliseconds
+   */
+  maxAssertionAgeMs?: number;
+
+  /**
+   * Attribute Consuming Service Index
+   */
+  attributeConsumingServiceIndex?: string;
+
+  /**
+   * Disable Requested Authentication Context
+   */
+  disableRequestedAuthnContext?: boolean;
+
+  /**
+   * Requested Authentication Context
+   */
+  authnContext?: string | string[];
+
+  /**
+   * Requested Authentication Context Comparison
+   * @default 'exact'
+   */
+  racComparison?: 'exact' | 'minimum' | 'maximum' | 'better';
+
+  /**
+   * Force Authentication
+   */
+  forceAuthn?: boolean;
+
+  /**
+   * Passive Authentication
+   */
+  passive?: boolean;
+
+  /**
+   * Provider Name
+   */
+  providerName?: string;
+
+  /**
+   * Skip Request Compression
+   */
+  skipRequestCompression?: boolean;
+
+  /**
+   * Authentication Request Binding
+   * @default 'HTTP-Redirect'
+   */
+  authnRequestBinding?: 'HTTP-POST' | 'HTTP-Redirect';
+
+  /**
+   * Generate Unique ID function
+   */
+  generateUniqueId?: () => string;
+
+  /**
+   * Scoping configuration
+   */
+  scoping?: Record<string, unknown>;
+
+  /**
+   * Sign Metadata
+   */
+  signMetadata?: boolean;
+
+  /**
+   * Validate InResponseTo
+   * @default 'never'
+   */
+  validateInResponseTo?: 'always' | 'never' | 'ifPresent';
+
+  /**
+   * Request ID Expiration Period in milliseconds
+   * @default 28800000 (8 hours)
+   */
+  requestIdExpirationPeriodMs?: number;
+
+  /**
+   * Cache Provider
+   */
+  cacheProvider?: CacheProvider;
+
+  /**
+   * IDP Issuer
+   */
+  idpIssuer?: string;
+
+  /**
+   * SAML Authn Request Extensions
+   */
+  samlAuthnRequestExtensions?: Record<string, unknown>;
+
+  /**
+   * SAML Logout Request Extensions
+   */
+  samlLogoutRequestExtensions?: Record<string, unknown>;
+
+  /**
+   * Metadata Contact Person
+   */
+  metadataContactPerson?: Record<string, unknown>[];
+
+  /**
+   * Metadata Organization
+   */
+  metadataOrganization?: Record<string, unknown>;
+}
+
+/**
+ * Cache Provider Interface
+ */
+export interface CacheProvider {
+  saveAsync(key: string, value: string): Promise<unknown | null>;
+  getAsync(key: string): Promise<string | null>;
+  removeAsync(key: string | null): Promise<string | null>;
 }
 
 /**

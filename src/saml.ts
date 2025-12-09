@@ -366,7 +366,7 @@ export class SAMLProvider {
    */
   async getLoginUrl(options: LoginOptions = {}): Promise<string> {
     try {
-      const { returnTo, forceAuthn, mfa, ...additionalParams } = options;
+      const { returnTo, forceAuthn, mfa, origin, ...additionalParams } = options;
       const payload: RelayStatePayload = {
         return_to: returnTo || '/',
       };
@@ -383,6 +383,21 @@ export class SAMLProvider {
 
       if (mfa) {
         authorizeOptions.authnContext = [mfa];
+      }
+
+      // If a dynamic origin is provided and skipRequestAcsUrl is false,
+      // override the callback URL for this request
+      if (origin && !this.config.skipRequestAcsUrl) {
+        const dynamicCallbackUrl = new URL(this.config.returnToPath, origin).toString();
+        // node-saml's additionalParams get merged into the AuthnRequest
+        // We need to temporarily override the provider's callback URL
+        // by using the host option which node-saml uses for callbackUrl construction
+        authorizeOptions.callbackUrl = dynamicCallbackUrl;
+
+        this.logger.debug('Using dynamic origin for ACS URL', {
+          origin,
+          callbackUrl: dynamicCallbackUrl,
+        });
       }
 
       // Generate SAML AuthnRequest URL

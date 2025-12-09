@@ -2,6 +2,115 @@
 
 This document covers advanced features and integration patterns for the Weblogin Auth SDK.
 
+## Multi-Environment Deployments
+
+When you need to use the same IdP registration for multiple environments (localhost, Netlify previews, production), you can leverage Stanford's `skipEndpointValidationWhenSigned` feature with dynamic origin support.
+
+### How It Works
+
+1. **Metadata**: Register with your canonical production URL in metadata (e.g., `https://myapp.netlify.app`)
+2. **AuthnRequest**: Include the actual ACS URL from the current environment
+3. **IdP**: Because requests are signed, the IdP accepts the ACS URL without checking metadata
+
+### Configuration
+
+```typescript
+import { createWebLoginNext } from 'weblogin-auth-sdk/next';
+
+export const auth = createWebLoginNext({
+  saml: {
+    // ... other required config
+    skipRequestAcsUrl: false,  // IMPORTANT: Include ACS URL in AuthnRequest
+    returnToPath: '/api/auth/callback',
+  },
+  // ...
+});
+```
+
+### Dynamic Origin at Login Time
+
+Pass the current request's origin when initiating login:
+
+```typescript
+// app/api/auth/login/route.ts
+import { auth } from '@/lib/auth';
+
+export async function GET(request: Request) {
+  const origin = new URL(request.url).origin;
+  
+  // Pass dynamic origin - works with localhost, Netlify previews, production
+  const loginUrl = await auth.getLoginUrl({
+    origin,
+    returnTo: '/dashboard',
+  });
+  
+  return Response.redirect(loginUrl);
+}
+```
+
+### Environment-Specific Configuration
+
+Alternatively, use environment variables per deployment:
+
+**Netlify (netlify.toml)**
+```toml
+[context.production.environment]
+WEBLOGIN_AUTH_SAML_RETURN_ORIGIN = "https://myapp.netlify.app"
+```
+
+**Local Development (.env.local)**
+```bash
+WEBLOGIN_AUTH_SAML_RETURN_ORIGIN="https://localhost:3000"
+```
+
+### Complete Example
+
+```typescript
+// lib/auth.ts
+import { createWebLoginNext, idps } from 'weblogin-auth-sdk/next';
+
+export const auth = createWebLoginNext({
+  saml: {
+    issuer: process.env.WEBLOGIN_AUTH_SAML_ENTITY!,
+    entryPoint: idps.prod.entryPoint,
+    idpCert: idps.prod.cert,
+    returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
+    returnToPath: '/api/auth/callback',
+    privateKey: process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY!,
+    cert: process.env.WEBLOGIN_AUTH_SAML_SP_CERT!,
+    decryptionPvk: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY!,
+    decryptionCert: process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT!,
+    skipRequestAcsUrl: false,  // Include ACS URL in signed requests
+  },
+  session: {
+    secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
+  },
+});
+
+// app/api/auth/login/route.ts
+import { auth } from '@/lib/auth';
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const returnTo = url.searchParams.get('returnTo') || '/';
+  
+  const loginUrl = await auth.getLoginUrl({
+    origin: url.origin,  // Dynamic: localhost:3000, preview.netlify.app, etc.
+    returnTo,
+  });
+  
+  return Response.redirect(loginUrl);
+}
+
+// app/api/auth/callback/route.ts
+import { auth } from '@/lib/auth';
+
+export async function POST(request: Request) {
+  const { returnTo } = await auth.authenticate(request);
+  return Response.redirect(new URL(returnTo || '/', request.url));
+}
+```
+
 ## Understanding the Authentication Flow
 
 ### Complete SAML Authentication Lifecycle

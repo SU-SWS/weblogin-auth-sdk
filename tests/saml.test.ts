@@ -350,6 +350,71 @@ CLEAN_ME_2
         })
       );
     });
+
+    test('should use dynamic origin for ACS URL when skipRequestAcsUrl is false', async () => {
+      const config = { ...validConfig, skipRequestAcsUrl: false, returnToPath: '/api/auth/callback' };
+      const provider = new SAMLProvider(config, logger);
+      const mockGetAuthorizeUrlAsync = jest.fn().mockResolvedValue('https://idp.example.com/sso');
+      (provider as any).provider = {
+        getAuthorizeUrlAsync: mockGetAuthorizeUrlAsync,
+      };
+
+      await provider.getLoginUrl({
+        origin: 'https://localhost:3000',
+        returnTo: '/dashboard'
+      });
+
+      expect(mockGetAuthorizeUrlAsync).toHaveBeenCalledWith(
+        expect.any(String),
+        undefined,
+        expect.objectContaining({
+          callbackUrl: 'https://localhost:3000/api/auth/callback'
+        })
+      );
+    });
+
+    test('should not use dynamic origin when skipRequestAcsUrl is true', async () => {
+      const config = { ...validConfig, skipRequestAcsUrl: true };
+      const provider = new SAMLProvider(config, logger);
+      const mockGetAuthorizeUrlAsync = jest.fn().mockResolvedValue('https://idp.example.com/sso');
+      (provider as any).provider = {
+        getAuthorizeUrlAsync: mockGetAuthorizeUrlAsync,
+      };
+
+      await provider.getLoginUrl({
+        origin: 'https://localhost:3000',
+        returnTo: '/dashboard'
+      });
+
+      // Should NOT include callbackUrl since skipRequestAcsUrl is true
+      expect(mockGetAuthorizeUrlAsync).toHaveBeenCalledWith(
+        expect.any(String),
+        undefined,
+        expect.not.objectContaining({
+          callbackUrl: expect.any(String)
+        })
+      );
+    });
+
+    test('should not include origin in additionalParams', async () => {
+      const config = { ...validConfig, skipRequestAcsUrl: false };
+      const provider = new SAMLProvider(config, logger);
+      const mockGetAuthorizeUrlAsync = jest.fn().mockResolvedValue('https://idp.example.com/sso');
+      (provider as any).provider = {
+        getAuthorizeUrlAsync: mockGetAuthorizeUrlAsync,
+      };
+
+      await provider.getLoginUrl({
+        origin: 'https://localhost:3000',
+        returnTo: '/dashboard',
+        customParam: 'value'
+      });
+
+      // origin should not be passed through to node-saml
+      const callArgs = mockGetAuthorizeUrlAsync.mock.calls[0][2];
+      expect(callArgs.origin).toBeUndefined();
+      expect(callArgs.customParam).toBe('value');
+    });
   });
 
   describe('authenticate', () => {

@@ -542,6 +542,25 @@ export enum MFA {
 export type LoginOptions = {
   returnTo?: string;
   /**
+   * Override the ACS URL origin for this login request.
+   * Useful for multi-environment deployments (localhost, preview deployments, production)
+   * when using the IdP's skipEndpointValidationWhenSigned feature.
+   *
+   * When set, this origin is used to construct the AssertionConsumerServiceURL
+   * that's included in the signed AuthnRequest. The IdP will send the SAML
+   * response to this URL.
+   *
+   * @example
+   * ```typescript
+   * // Use the request's origin for dynamic environments
+   * await auth.login({
+   *   origin: new URL(request.url).origin,
+   *   returnTo: '/dashboard'
+   * });
+   * ```
+   */
+  origin?: string;
+  /**
    * Force re-authentication at the IdP
    */
   forceAuthn?: boolean;

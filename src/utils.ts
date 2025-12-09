@@ -38,6 +38,24 @@ export class AuthUtils {
   private static decoder = new TextDecoder();
 
   /**
+   * Format certificate or private key
+   *
+   * Cleans up certificate or private key strings by removing headers, footers,
+   * and whitespace. This ensures consistent formatting regardless of how the
+   * key was provided (e.g., with or without headers in environment variables).
+   *
+   * @param key - The certificate or key string to format
+   * @returns Cleaned base64 string
+   */
+  static formatKey(key: string): string {
+    if (!key) return '';
+    return key
+      .replace(/-----BEGIN [A-Z ]+-----/g, '')
+      .replace(/-----END [A-Z ]+-----/g, '')
+      .replace(/\s+/g, '');
+  }
+
+  /**
    * Generate a cryptographically secure random string
    *
    * Uses the Web Crypto API to generate cryptographically secure random bytes

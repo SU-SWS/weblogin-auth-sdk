@@ -139,17 +139,39 @@ export class SAMLProvider {
   constructor(config: SamlConfig, logger?: Logger) {
     this.logger = logger || new DefaultLogger();
 
+    // Process certificates and keys to remove headers/footers if present
+    const rawIdpCert = config.idpCert || process.env.WEBLOGIN_AUTH_SAML_CERT;
+    const idpCert = Array.isArray(rawIdpCert)
+      ? rawIdpCert.map(c => AuthUtils.formatKey(c))
+      : AuthUtils.formatKey(rawIdpCert as string);
+
+    // Determine private key (prioritize explicit config, then env, then fallback to idpCert)
+    let rawPrivateKey = config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY;
+    if (!rawPrivateKey) {
+      // If no private key specified, try to use idpCert (if it's a string)
+      if (typeof config.idpCert === 'string') {
+        rawPrivateKey = config.idpCert;
+      } else if (process.env.WEBLOGIN_AUTH_SAML_CERT) {
+        rawPrivateKey = process.env.WEBLOGIN_AUTH_SAML_CERT;
+      }
+    }
+    const privateKey = AuthUtils.formatKey(rawPrivateKey || '');
+
+    const decryptionPvk = AuthUtils.formatKey(
+      config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY || ''
+    );
+
     // Build configuration with defaults and environment variable fallbacks
     const samlConfig = {
       // Required fields (must be provided)
       issuer: config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || process.env.WEBLOGIN_AUTH_SAML_ENTITY,
-      idpCert: config.idpCert || process.env.WEBLOGIN_AUTH_SAML_CERT,
+      idpCert,
       returnToOrigin: config.returnToOrigin || process.env.WEBLOGIN_AUTH_ACS_URL_ORIGIN || process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN,
 
       // Optional fields with sensible defaults
       audience: config.audience || `https://${config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || 'weblogin'}.stanford.edu`,
-      privateKey: config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY || config.idpCert || process.env.WEBLOGIN_AUTH_SAML_CERT || '',
-      decryptionPvk: config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY || '',
+      privateKey,
+      decryptionPvk,
 
       // IDP Entry Point
       entryPoint: config.entryPoint || process.env.WEBLOGIN_AUTH_IDP_ENTRY_POINT || 'https://idp.stanford.edu/idp/profile/SAML2/Redirect/SSO',

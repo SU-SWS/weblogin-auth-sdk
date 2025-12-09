@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SAMLProvider } from '../src/saml';
 import { DefaultLogger } from '../src/logger';
 import type { SamlConfig } from '../src/types';
@@ -24,7 +25,7 @@ describe('SAMLProvider Metadata', () => {
 
     const metadata = provider.getMetadata();
 
-    expect(metadata).toBe('<EntityDescriptor>...</EntityDescriptor>');
+    expect(metadata).toMatch(/<EntityDescriptor validUntil="[^"]+">...<\/EntityDescriptor>/);
     expect(mockGenerateMetadata).toHaveBeenCalledWith(null, null);
   });
 
@@ -41,7 +42,7 @@ describe('SAMLProvider Metadata', () => {
 
     const metadata = provider.getMetadata(decryptionCert, signingCert);
 
-    expect(metadata).toBe('<EntityDescriptor>...</EntityDescriptor>');
+    expect(metadata).toMatch(/<EntityDescriptor validUntil="[^"]+">...<\/EntityDescriptor>/);
     expect(mockGenerateMetadata).toHaveBeenCalledWith(decryptionCert, signingCert);
   });
 });

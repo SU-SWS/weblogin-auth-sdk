@@ -48,6 +48,7 @@ const auth = createWebLoginNext({
     wantAssertionsSigned: true,
     wantAuthnResponseSigned: true,
     acceptedClockSkewMs: 60000,
+    skipRequestAcsUrl: false, // Set to true for dynamic deployments (e.g. Vercel preview)
   },
   session: {
     name: 'weblogin-auth-session',
@@ -125,6 +126,7 @@ Available presets:
 | `wantAssertionsSigned` | `boolean` | `true` | Require signed SAML assertions |
 | `wantAuthnResponseSigned` | `boolean` | `true` | Require signed SAML responses |
 | `acceptedClockSkewMs` | `number` | `60000` | Allowed clock skew in milliseconds |
+| `skipRequestAcsUrl` | `boolean` | `false` | Skip ACS URL validation in AuthnRequest (useful for dynamic deployments) |
 
 ## Session Configuration Options
 

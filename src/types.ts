@@ -160,6 +160,13 @@ export interface OptionalSamlConfig {
    * @default 'https://idp.stanford.edu/idp/profile/SAML2/Redirect/SSO'
    */
   entryPoint?: string;
+
+  /**
+   * Skip validation of the Assertion Consumer Service URL in the AuthnRequest.
+   * This is useful for deployments with dynamic URLs (e.g. Vercel preview deployments).
+   * @default false
+   */
+  skipRequestAcsUrl?: boolean;
 }
 
 /**

@@ -192,6 +192,9 @@ export class SAMLProvider {
       // Additional parameters with defaults
       additionalParams: config.additionalParams || {},
       additionalAuthorizeParams: config.additionalAuthorizeParams || {},
+
+      // Skip ACS URL validation in AuthnRequest
+      skipRequestAcsUrl: config.skipRequestAcsUrl ?? false,
     };
 
     // Store the merged configuration
@@ -217,6 +220,7 @@ export class SAMLProvider {
       acceptedClockSkewMs: samlConfig.acceptedClockSkewMs,
       allowCreate: samlConfig.allowCreate,
       callbackUrl: callbackUrl,
+      disableRequestAcsUrl: samlConfig.skipRequestAcsUrl,
       // Convert additionalParams to strings for node-saml compatibility
       additionalParams: Object.fromEntries(
         Object.entries(samlConfig.additionalParams).map(([k, v]) => [k, String(v)])

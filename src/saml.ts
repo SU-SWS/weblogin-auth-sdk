@@ -172,7 +172,7 @@ export class SAMLProvider {
       cert,
 
       // Optional fields with sensible defaults
-      audience: config.audience || `https://${config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || 'weblogin'}.stanford.edu`,
+      audience: config.audience || config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || 'weblogin.stanford.edu',
       decryptionPvk,
       decryptionCert,
 

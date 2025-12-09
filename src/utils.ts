@@ -38,14 +38,17 @@ export class AuthUtils {
   private static decoder = new TextDecoder();
 
   /**
-   * Format certificate or private key
+   * Format certificate or public key for SAML
    *
-   * Cleans up certificate or private key strings by removing headers, footers,
+   * Cleans up certificate or key strings by removing headers, footers,
    * and whitespace. This ensures consistent formatting regardless of how the
    * key was provided (e.g., with or without headers in environment variables).
    *
+   * Note: For private keys that need PEM format (like decryption keys),
+   * use formatPrivateKey() instead.
+   *
    * @param key - The certificate or key string to format
-   * @returns Cleaned base64 string
+   * @returns Cleaned base64 string without headers/footers
    */
   static formatKey(key: string): string {
     if (!key) return '';
@@ -53,6 +56,66 @@ export class AuthUtils {
       .replace(/-----BEGIN [A-Z ]+-----/g, '')
       .replace(/-----END [A-Z ]+-----/g, '')
       .replace(/\s+/g, '');
+  }
+
+  /**
+   * Format private key for cryptographic operations
+   *
+   * Normalizes a private key to proper PEM format. This is required for
+   * decryption operations where the key must be in valid PEM format with
+   * headers, footers, and proper line breaks.
+   *
+   * Handles various input formats:
+   * - Already formatted PEM with headers
+   * - Raw base64 without headers
+   * - Keys with or without line breaks
+   *
+   * @param key - The private key string to format
+   * @returns Private key in proper PEM format with headers and line breaks
+   */
+  static formatPrivateKey(key: string): string {
+    if (!key) return '';
+
+    // Remove any existing headers/footers and whitespace
+    const rawKey = key
+      .replace(/-----BEGIN [A-Z ]+-----/g, '')
+      .replace(/-----END [A-Z ]+-----/g, '')
+      .replace(/\s+/g, '');
+
+    if (!rawKey) return '';
+
+    // Add proper line breaks every 64 characters
+    const formattedKey = rawKey.match(/.{1,64}/g)?.join('\n') || rawKey;
+
+    // Wrap in PEM headers
+    return `-----BEGIN PRIVATE KEY-----\n${formattedKey}\n-----END PRIVATE KEY-----`;
+  }
+
+  /**
+   * Format certificate for metadata
+   *
+   * Normalizes a certificate to proper PEM format. This ensures certificates
+   * are properly formatted for inclusion in SAML metadata.
+   *
+   * @param cert - The certificate string to format
+   * @returns Certificate in proper PEM format with headers and line breaks
+   */
+  static formatCertificate(cert: string): string {
+    if (!cert) return '';
+
+    // Remove any existing headers/footers and whitespace
+    const rawCert = cert
+      .replace(/-----BEGIN [A-Z ]+-----/g, '')
+      .replace(/-----END [A-Z ]+-----/g, '')
+      .replace(/\s+/g, '');
+
+    if (!rawCert) return '';
+
+    // Add proper line breaks every 64 characters
+    const formattedCert = rawCert.match(/.{1,64}/g)?.join('\n') || rawCert;
+
+    // Wrap in certificate headers
+    return `-----BEGIN CERTIFICATE-----\n${formattedCert}\n-----END CERTIFICATE-----`;
   }
 
   /**

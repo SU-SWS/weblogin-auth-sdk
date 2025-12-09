@@ -149,16 +149,16 @@ export class SAMLProvider {
     const rawPrivateKey = config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY;
     const privateKey = AuthUtils.formatKey(rawPrivateKey || '');
 
-    // Decryption keys are optional - only process if explicitly provided
-    // Use undefined (not empty string) when not provided, so node-saml doesn't require decryptionCert
+    // Decryption private key must be in PEM format for node-saml's decryption
+    // Use formatPrivateKey to ensure proper PEM format with headers
     const rawDecryptionPvk = config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY;
-    const decryptionPvk = rawDecryptionPvk ? AuthUtils.formatKey(rawDecryptionPvk) : undefined;
+    const decryptionPvk = rawDecryptionPvk ? AuthUtils.formatPrivateKey(rawDecryptionPvk) : undefined;
 
     // Determine public cert (prioritize explicit config, then env)
     const rawCert = config.cert || process.env.WEBLOGIN_AUTH_SAML_SP_CERT;
     const cert = AuthUtils.formatKey(rawCert || '');
 
-    // Decryption cert is optional - only process if explicitly provided
+    // Decryption cert - use formatKey for base64 only (metadata uses raw base64)
     const rawDecryptionCert = config.decryptionCert || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT;
     const decryptionCert = rawDecryptionCert ? AuthUtils.formatKey(rawDecryptionCert) : undefined;
 
@@ -315,7 +315,7 @@ export class SAMLProvider {
    * @private
    */
   private validateConfig(): void {
-    const required = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin', 'privateKey', 'cert'];
+    const required = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin', 'privateKey', 'cert', 'decryptionPvk', 'decryptionCert'];
     const missing = required.filter(key => {
       const value = this.config[key as keyof SamlConfig];
       return !value || (typeof value === 'string' && value.trim() === '');

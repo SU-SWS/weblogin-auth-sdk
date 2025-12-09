@@ -23,6 +23,8 @@ describe('SAMLProvider', () => {
     returnToPath: '/auth/callback',
     privateKey: 'test-private-key',
     cert: 'test-public-cert',
+    decryptionPvk: 'test-decryption-key',
+    decryptionCert: 'test-decryption-cert',
   };
 
   const logger = new DefaultLogger();
@@ -209,7 +211,7 @@ CLEAN_ME_KEY
       expect(provider.provider.options.privateKey).toBe('CLEAN_ME_KEY');
     });
 
-    test('should clean decryptionPvk headers/footers', () => {
+    test('should normalize decryptionPvk to PEM format', () => {
       const config = {
         ...validConfig,
         decryptionPvk: `-----BEGIN PRIVATE KEY-----
@@ -218,7 +220,8 @@ CLEAN_ME_DECRYPT
       };
       const provider = new SAMLProvider(config);
       // @ts-expect-error accessing private property for testing
-      expect(provider.provider.options.decryptionPvk).toBe('CLEAN_ME_DECRYPT');
+      // decryptionPvk must be in PEM format for node-saml decryption
+      expect(provider.provider.options.decryptionPvk).toBe('-----BEGIN PRIVATE KEY-----\nCLEAN_ME_DECRYPT\n-----END PRIVATE KEY-----');
     });
 
     test('should clean idpCert array headers/footers', () => {
@@ -613,7 +616,7 @@ CLEAN_ME_2
       expect(metadata).toMatch(/validUntil="\d{4}-\d{2}-\d{2}T/);
     });
 
-    test('should pass null decryption cert when not provided', () => {
+    test('should use decryption cert from config', () => {
       const provider = new SAMLProvider(validConfig, logger);
       const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
       (provider as any).provider = {
@@ -622,13 +625,13 @@ CLEAN_ME_2
 
       provider.getMetadata();
 
-      expect(mockGenerateMetadata).toHaveBeenCalledWith(null, 'test-public-cert');
+      expect(mockGenerateMetadata).toHaveBeenCalledWith('test-decryption-cert', 'test-public-cert');
     });
 
     test('should use decryption cert from config when provided', () => {
       const configWithDecryption = {
         ...validConfig,
-        decryptionCert: 'test-decryption-cert',
+        decryptionCert: 'custom-decryption-cert',
       };
       const provider = new SAMLProvider(configWithDecryption, logger);
       const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
@@ -638,7 +641,7 @@ CLEAN_ME_2
 
       provider.getMetadata();
 
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('test-decryption-cert', 'test-public-cert');
+      expect(mockGenerateMetadata).toHaveBeenCalledWith('custom-decryption-cert', 'test-public-cert');
     });
 
     test('should use decryption cert from argument when provided', () => {

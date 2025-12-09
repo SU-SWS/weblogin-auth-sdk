@@ -19,6 +19,8 @@ describe('WebLoginNext Metadata', () => {
       returnToOrigin: 'https://app.example.com',
       privateKey: 'test-private-key',
       cert: 'test-public-cert',
+      decryptionPvk: 'test-decryption-key',
+      decryptionCert: 'test-decryption-cert',
     },
     session: {
       name: 'test-session',

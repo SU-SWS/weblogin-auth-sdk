@@ -628,7 +628,7 @@ export class SessionManager {
       const session = await getIronSession<Session>(
         ironStore as unknown as IronCookieStore,
         {
-          cookieName: sessionConfig.name,
+          cookieName: sessionConfig.name || 'weblogin-auth',
           password: sessionConfig.secret,
           cookieOptions: sessionConfig.cookie,
         }

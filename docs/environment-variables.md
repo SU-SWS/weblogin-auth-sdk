@@ -146,7 +146,9 @@ WEBLOGIN_AUTH_CALLBACK_PATH="/api/auth/callback"
 **Description**: Name of the session cookie  
 **Type**: `string`  
 **Default**: `weblogin-auth`  
+**Required**: No (optional, has default)  
 **Example**: `my-app-session`  
+**Note**: Creates two cookies: the main encrypted cookie (e.g., `weblogin-auth`) and a JS-accessible cookie (e.g., `weblogin-auth-session`)  
 
 ```bash
 WEBLOGIN_AUTH_SESSION_NAME="weblogin-auth"
@@ -183,7 +185,7 @@ NODE_ENV="development"  # or "production"
 | `WEBLOGIN_AUTH_SESSION_SECRET` | `session.secret` | Yes |
 | `WEBLOGIN_AUTH_IDP_ENTRY_POINT` | `entryPoint` | No |
 | `WEBLOGIN_AUTH_CALLBACK_PATH` | `returnToPath` | No |
-| `WEBLOGIN_AUTH_SESSION_NAME` | `session.name` | No |
+| `WEBLOGIN_AUTH_SESSION_NAME` | `session.name` | No (default: `'weblogin-auth'`) |
 
 ## Legacy Environment Variables
 
@@ -216,6 +218,7 @@ WEBLOGIN_AUTH_IDP_ENTRY_POINT="https://login.stanford.edu/idp/profile/SAML2/Redi
 WEBLOGIN_AUTH_CALLBACK_PATH="/api/auth/callback"
 
 # Optional Session Configuration
+# Default is 'weblogin-auth' which creates 'weblogin-auth' (main) and 'weblogin-auth-session' (JS) cookies
 WEBLOGIN_AUTH_SESSION_NAME="myapp-session"
 
 # Environment

@@ -240,8 +240,9 @@ export class WebLoginNext {
 
     // Merge required and optional session config
     this.sessionConfig = {
+      name: config.session.name || 'weblogin-auth',
+      secret: config.session.secret,
       ...config.session,
-      ...(config.session && 'cookie' in config.session ? {} : {}), // Handle overlap
     };
 
     this.samlProvider = new SAMLProvider(samlConfig, this.logger);

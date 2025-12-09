@@ -23,7 +23,7 @@ const sessionData: Session = {
 
 // Configuration (same as you'd use for SessionManager)
 const sessionConfig = {
-  name: 'my-session',
+  name: 'my-session', // optional, defaults to 'weblogin-auth'
   secret: 'your-32-character-secret-key!!',
   cookie: {
     httpOnly: true,
@@ -57,7 +57,7 @@ describe('Protected API Routes', () => {
 
     // Generate encrypted cookie value
     const sealedCookie = await SessionManager.sealSession(sessionData, {
-      name: 'auth-session',
+      name: 'auth-session', // optional, defaults to 'weblogin-auth'
       secret: process.env.SESSION_SECRET!
     });
 
@@ -97,7 +97,7 @@ describe('User Dashboard', () => {
     };
 
     const sessionCookie = await SessionManager.sealSession(adminSession, {
-      name: 'app-session',
+      name: 'app-session', // optional, defaults to 'weblogin-auth'
       secret: 'test-secret-32-characters-long!!'
     });
 

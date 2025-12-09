@@ -33,9 +33,11 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth',
+    // name is optional, defaults to 'weblogin-auth'
+    // This creates two cookies: 'weblogin-auth' (main encrypted) and 'weblogin-auth-session' (JS-accessible)
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
     cookie: {
+      // maxAge in seconds - omit for session cookie (expires when browser closes)
       maxAge: 60 * 60 * 24 * 7, // 1 week
     },
   },
@@ -452,7 +454,7 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth',
+    // name is optional, defaults to 'weblogin-auth'
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
   },
   callbacks: {
@@ -462,7 +464,6 @@ export const auth = createWebLoginNext({
         id: profile.nameID,
         email: profile.email || profile.mail,
         name: profile.displayName || `${profile.givenName} ${profile.sn}`,
-        imageUrl: profile.picture,
         department: profile.department,
         roles: profile.roles?.split(',') || [],
       };

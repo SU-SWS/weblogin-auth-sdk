@@ -17,7 +17,7 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!
   },
   session: {
-    name: 'weblogin-auth',
+    // name is optional, defaults to 'weblogin-auth'
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
   }
 });

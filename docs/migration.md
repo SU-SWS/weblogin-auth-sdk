@@ -87,7 +87,7 @@ const auth = createWebLoginNext({
     returnToOrigin: 'https://your-app.com',
   },
   session: {
-    name: 'weblogin-auth',
+    // name is optional, defaults to 'weblogin-auth'
     secret: 'secret',
   },
 });
@@ -107,7 +107,7 @@ This section provides a detailed mapping of environment variables from v1.x to v
 | `WEBLOGIN_AUTH_SAML_CERT` | `WEBLOGIN_AUTH_SAML_CERT` | ✅ **Same** | IdP certificate (required) |
 | `WEBLOGIN_AUTH_SESSION_SECRET` | `WEBLOGIN_AUTH_SESSION_SECRET` | ✅ **Same** | Session encryption secret (required) |
 | `WEBLOGIN_AUTH_SAML_RETURN_ORIGIN` | `WEBLOGIN_AUTH_SAML_RETURN_ORIGIN` | ✅ **Same** | Application base URL (required) |
-| `WEBLOGIN_AUTH_SESSION_EXPIRES_IN` | `WEBLOGIN_AUTH_SESSION_EXPIRES_IN` | ✅ **Same** | Sessions default to expire when browser closes |
+| `WEBLOGIN_AUTH_SESSION_EXPIRES_IN` | `WEBLOGIN_AUTH_SESSION_EXPIRES_IN` | ✅ **Same** | Cookie max-age in seconds; omit for session cookies (expires when browser closes) |
 
 
 ### Optional Variables (Still Supported)

@@ -37,7 +37,8 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth',
+    // name is optional, defaults to 'weblogin-auth'
+    // This creates two cookies: 'weblogin-auth' (main encrypted) and 'weblogin-auth-session' (JS-accessible)
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
   },
 });
@@ -60,7 +61,7 @@ const samlProvider = new SAMLProvider({
 const sessionManager = new SessionManager(
   createWebCookieStore(req, res),
   { 
-    name: 'weblogin-auth',
+    // name is optional, defaults to 'weblogin-auth'
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
   }
 );
@@ -93,16 +94,18 @@ export const auth = createWebLoginNext({
   },
   session: {
     // Required
-    name: 'weblogin-auth',  // Creates 'weblogin-auth' (main) and 'weblogin-auth-session' (JS) cookies
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
 
-    // Optional - customize as needed
+    // Optional - name defaults to 'weblogin-auth' if not provided
+    // Creates 'weblogin-auth' (main) and 'weblogin-auth-session' (JS) cookies
+    name: 'weblogin-auth',
     cookie: {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
       path: '/',
-      maxAge: 86400, // 1 day
+      // maxAge: undefined means cookie expires when browser closes (default)
+      // Set maxAge in seconds for persistent cookies, e.g.: maxAge: 86400 (1 day)
     },
     cookieSizeThreshold: 3500,
   },

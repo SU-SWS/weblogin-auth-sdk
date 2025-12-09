@@ -340,11 +340,6 @@ export type SamlConfig = RequiredSamlConfig & OptionalSamlConfig;
  */
 export interface RequiredSessionConfig {
   /**
-   * Session cookie name (required)
-   */
-  name: string;
-
-  /**
    * Secret for encrypting session data - must be 32+ characters (required)
    */
   secret: string;
@@ -354,6 +349,12 @@ export interface RequiredSessionConfig {
  * Optional session configuration with sensible defaults
  */
 export interface OptionalSessionConfig {
+  /**
+   * Session cookie name
+   * @default 'weblogin-auth'
+   */
+  name?: string;
+
   /**
    * Cookie configuration options
    */

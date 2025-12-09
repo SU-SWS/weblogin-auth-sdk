@@ -79,7 +79,7 @@ interface Session {
   };
   meta?: Record<string, unknown>;  // Custom metadata
   issuedAt: number;       // Unix timestamp when session was created
-  expiresAt: number;      // 0 for session cookies, or Unix timestamp
+  expiresAt: number;      // 0 for session cookies (expires when browser closes), or Unix timestamp
 }
 ```
 
@@ -99,12 +99,13 @@ app.post('/auth/callback', async (req, res) => {
   
   // Step 3: Initialize session manager
   const sessionManager = new SessionManager(cookieStore, {
-    name: 'my-session',
+    name: 'my-session', // optional, defaults to 'weblogin-auth'
     secret: process.env.SESSION_SECRET!,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      // maxAge: undefined means cookie expires when browser closes (default)
     }
   });
   
@@ -238,7 +239,7 @@ const testSession: Session = {
 };
 
 const sessionConfig = {
-  name: 'auth-session',
+  name: 'auth-session', // optional, defaults to 'weblogin-auth'
   secret: 'your-32-character-secret-key!!',
   cookie: {
     httpOnly: true,

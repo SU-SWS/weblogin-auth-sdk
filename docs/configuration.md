@@ -51,13 +51,18 @@ const auth = createWebLoginNext({
     skipRequestAcsUrl: false, // Set to true for dynamic deployments (e.g. Vercel preview)
   },
   session: {
-    name: 'weblogin-auth',
+    // Required
     secret: 'your-session-secret-32-chars-min',
+    
+    // Optional - name defaults to 'weblogin-auth' if not provided
+    name: 'weblogin-auth',
     cookie: {
       httpOnly: true,
       secure: true,
       sameSite: 'lax',
       path: '/',
+      // maxAge: undefined means cookie expires when browser closes (default)
+      // Set maxAge in seconds for persistent cookies, e.g.: maxAge: 86400 (1 day)
     },
     cookieSizeThreshold: 3500, // Warn if cookie exceeds this size
   },
@@ -153,18 +158,19 @@ Available presets:
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `name` | `string` | Name of the session cookie |
 | `secret` | `string` | Secret for encrypting session data (32+ chars) |
 
 ### Optional Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `name` | `string` | `'weblogin-auth'` | Name of the session cookie. Creates two cookies: the main encrypted cookie (`weblogin-auth`) and a JS-accessible cookie (`weblogin-auth-session`) |
 | `cookie.httpOnly` | `boolean` | `true` | Prevent client-side access to cookie |
 | `cookie.secure` | `boolean` | `true` | Only send cookie over HTTPS |
 | `cookie.sameSite` | `string` | `'lax'` | SameSite cookie attribute |
 | `cookie.path` | `string` | `'/'` | Cookie path |
 | `cookie.domain` | `string` | `undefined` | Cookie domain |
+| `cookie.maxAge` | `number` | `undefined` | Cookie max age in seconds. When `undefined` (default), cookie expires when browser closes (session cookie) |
 | `cookieSizeThreshold` | `number` | `3500` | Warn when cookie exceeds this size |
 
 ## Callback Functions

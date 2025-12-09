@@ -15,7 +15,7 @@ const samlConfig = {
 };
 
 const sessionConfig = {
-  name: 'weblogin-auth',
+  // name is optional, defaults to 'weblogin-auth'
   secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET,
 };
 

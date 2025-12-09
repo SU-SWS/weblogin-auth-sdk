@@ -155,7 +155,7 @@ export class SessionManager {
     logger?: Logger
   ) {
     this.config = {
-      name: config.name,
+      name: config.name || 'weblogin-auth',
       secret: config.secret,
       cookie: {
         httpOnly: true,

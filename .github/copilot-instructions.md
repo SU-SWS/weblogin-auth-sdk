@@ -64,7 +64,7 @@ Cookie flags: HttpOnly, Secure, SameSite=Lax, Path=/, __Host- prefix when possib
 Data model Example (extensible):
 
 type Session = {
-  user: { id: string; email?: string; name?: string; imageUrl?: string };
+  user: { id: string; email?: string; name?: string };
   meta?: Record<string, unknown>; // developer-defined metadata
   issuedAt: number;
   expiresAt: number;

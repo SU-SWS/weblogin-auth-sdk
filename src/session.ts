@@ -256,6 +256,13 @@ export class SessionManager {
    * ```
    */
   async createSession(user: User, meta?: Record<string, unknown>): Promise<Session> {
+    this.logger.debug('Starting session creation', {
+      userId: user.id,
+      userEmail: user.email,
+      hasMeta: !!meta,
+      metaKeys: meta ? Object.keys(meta) : []
+    });
+
     const now = Date.now();
     const sessionData: Session = {
       user,
@@ -264,14 +271,38 @@ export class SessionManager {
       expiresAt: 0, // Session expires when browser closes
     };
 
+    this.logger.debug('Session data prepared', {
+      userId: user.id,
+      issuedAt: sessionData.issuedAt,
+      expiresAt: sessionData.expiresAt,
+      userFields: Object.keys(user)
+    });
+
     try {
       const mainCookieName = this.config.name;
       const jsCookieName = `${this.config.name}-session`;
+
+      this.logger.debug('Cookie names configured', {
+        mainCookieName,
+        jsCookieName
+      });
 
       const ironStore = {
         get: this.cookieStore.get,
         set: this.cookieStore.set,
       };
+
+      this.logger.debug('Creating iron-session', {
+        cookieName: mainCookieName,
+        cookieOptions: {
+          httpOnly: this.config.cookie.httpOnly,
+          secure: this.config.cookie.secure,
+          sameSite: this.config.cookie.sameSite,
+          path: this.config.cookie.path,
+          domain: this.config.cookie.domain,
+          maxAge: this.config.cookie.maxAge
+        }
+      });
 
       const session = await getIronSession<Session>(
         ironStore as unknown as IronCookieStore,
@@ -282,11 +313,21 @@ export class SessionManager {
         }
       );
 
+      this.logger.debug('Iron-session instance created, assigning session data');
+
       // Set session data
       Object.assign(session, sessionData);
+
+      this.logger.debug('Saving encrypted session to cookie');
       await session.save();
+      this.logger.debug('Session saved successfully');
 
       // Create JavaScript-accessible session boolean cookie
+      this.logger.debug('Creating JS-accessible session indicator cookie', {
+        jsCookieName,
+        httpOnly: false
+      });
+
       this.cookieStore.set(jsCookieName, 'true', {
         httpOnly: false, // JavaScript accessible
         secure: this.config.cookie.secure,
@@ -298,6 +339,14 @@ export class SessionManager {
 
       // Check cookie size
       const cookieValue = this.cookieStore.get(mainCookieName)?.value || '';
+      const cookieSize = cookieValue.length;
+
+      this.logger.debug('Session cookie created', {
+        mainCookieName,
+        cookieSize,
+        threshold: this.config.cookieSizeThreshold
+      });
+
       AuthUtils.checkCookieSize(cookieValue, this.config.cookieSizeThreshold, this.logger);
 
       this.logger.info('Session created', {
@@ -311,6 +360,7 @@ export class SessionManager {
     } catch (error) {
       this.logger.error('Failed to create session', {
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
         userId: user.id
       });
       throw error;

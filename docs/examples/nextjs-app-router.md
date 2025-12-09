@@ -101,12 +101,75 @@ export async function GET(request: Request) {
 
 ### Callback Route (ACS)
 
+The callback route handles the SAML response from the Identity Provider. When a user successfully authenticates at the IdP, they are redirected back to this endpoint with a SAML assertion.
+
+**Simple Version (Recommended)**
+
 ```typescript
-// app/api/auth/acs/route.ts
+// app/api/auth/callback/route.ts
 import { auth } from '@/lib/auth';
 
 export async function POST(request: Request) {
-  return auth.handleCallback(request);
+  // authenticate() does everything:
+  // 1. Validates SAML response signature
+  // 2. Verifies assertion conditions
+  // 3. Extracts user from SAML attributes
+  // 4. Creates encrypted session cookie
+  // 5. Returns the returnTo URL from RelayState
+  const { returnTo } = await auth.authenticate(request);
+  return Response.redirect(new URL(returnTo || '/', request.url));
+}
+```
+
+**Detailed Version (With Error Handling & Session Access)**
+
+```typescript
+// app/api/auth/callback/route.ts
+import { auth } from '@/lib/auth';
+import { AuthError } from 'weblogin-auth-sdk';
+
+export async function POST(request: Request) {
+  try {
+    // The authenticate() method performs the complete SAML callback flow:
+    //
+    // 1. SAML Response Validation:
+    //    - Parses the base64-encoded SAMLResponse from the POST body
+    //    - Verifies the XML signature against the IdP certificate
+    //    - Checks assertion conditions (NotBefore, NotOnOrAfter, Audience)
+    //
+    // 2. User Profile Extraction:
+    //    - Maps SAML attributes to user fields (id, email, name)
+    //    - Applies custom attribute mapping via callbacks.mapProfile
+    //    - Handles Stanford-specific OID attributes automatically
+    //
+    // 3. Session Creation:
+    //    - Creates a Session object with user data and timestamps
+    //    - Encrypts the session using iron-session with your secret
+    //    - Sets the encrypted session as an HttpOnly cookie
+    //    - Sets a JS-accessible cookie for client-side auth checks
+    //
+    // 4. RelayState Processing:
+    //    - Extracts the returnTo URL from the signed RelayState
+    //    - Validates the URL is same-origin for security
+    const { returnTo } = await auth.authenticate(request);
+
+    // At this point, the session cookie is set. You can access it:
+    const session = await auth.getSession();
+    console.log('Authenticated user:', session?.user.id);
+
+    // Redirect to the original page or a default
+    return Response.redirect(new URL(returnTo || '/dashboard', request.url));
+
+  } catch (error) {
+    // Handle specific error types
+    if (error instanceof AuthError) {
+      console.error('Auth error:', error.code, error.message);
+    } else {
+      console.error('Unexpected error:', error);
+    }
+
+    return Response.redirect(new URL('/login?error=auth_failed', request.url));
+  }
 }
 ```
 
@@ -164,10 +227,6 @@ export default async function ProtectedPage() {
       <h1>Protected Page</h1>
       <p>Welcome, {session.user.name || session.user.email}!</p>
       <p>User ID: {session.user.id}</p>
-
-      {session.user.imageUrl && (
-        <img src={session.user.imageUrl} alt="Profile" width={64} height={64} />
-      )}
 
       <form action="/api/auth/logout" method="post">
         <button type="submit">Logout</button>
@@ -242,7 +301,6 @@ interface User {
   id: string;
   email?: string;
   name?: string;
-  imageUrl?: string;
 }
 
 interface SessionData {

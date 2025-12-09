@@ -2,6 +2,127 @@
 
 This document covers advanced features and integration patterns for the Weblogin Auth SDK.
 
+## Understanding the Authentication Flow
+
+### Complete SAML Authentication Lifecycle
+
+The SDK handles the complete SP-initiated SAML authentication flow:
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   Your App      │     │   Stanford IdP  │     │   Your App      │
+│   (Login)       │────▶│   (Auth)        │────▶│   (Callback)    │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+        │                       │                       │
+   1. login()              2. User                 3. authenticate()
+   generates              authenticates           validates response
+   AuthnRequest           at Stanford             creates session
+        │                       │                       │
+        ▼                       ▼                       ▼
+   Redirect to IdP        SAML Response          Session Cookie Set
+   with RelayState        with Assertion         User Redirected
+```
+
+### Step-by-Step Breakdown
+
+**1. Initiating Login (`auth.login()`)**
+```typescript
+// User clicks login, your app calls:
+await auth.login({ returnTo: '/dashboard' });
+
+// SDK internally:
+// - Generates SAML AuthnRequest XML
+// - Creates signed RelayState with returnTo URL
+// - Redirects user to IdP entry point
+```
+
+**2. User Authenticates at Stanford IdP**
+- User enters credentials at Stanford login
+- IdP validates user and generates SAML Assertion
+- IdP signs the assertion with its private key
+- IdP redirects back to your ACS URL with SAMLResponse
+
+**3. Handling the Callback (`auth.authenticate()`)**
+```typescript
+// Your callback route receives the POST from IdP:
+export async function POST(request: Request) {
+  const { returnTo } = await auth.authenticate(request);
+  
+  // SDK internally:
+  // 1. Parses SAMLResponse from POST body
+  // 2. Verifies signature against idpCert
+  // 3. Validates conditions (time, audience)
+  // 4. Decrypts assertion if encrypted (using decryptionPvk)
+  // 5. Extracts user attributes
+  // 6. Calls mapProfile callback if defined
+  // 7. Creates Session { user, meta, issuedAt, expiresAt }
+  // 8. Calls session callback if defined
+  // 9. Encrypts session with iron-session
+  // 10. Sets HttpOnly cookie
+  // 11. Returns returnTo URL from RelayState
+  
+  return Response.redirect(new URL(returnTo || '/', request.url));
+}
+```
+
+### Session Structure
+
+After successful authentication, the session contains:
+
+```typescript
+interface Session {
+  user: {
+    id: string;           // Typically encodedSUID or nameID
+    email?: string;       // From mail or email attribute
+    name?: string;        // From displayName or cn
+    // ... additional mapped attributes from SAML response
+  };
+  meta?: Record<string, unknown>;  // Custom metadata
+  issuedAt: number;       // Unix timestamp when session was created
+  expiresAt: number;      // 0 for session cookies, or Unix timestamp
+}
+```
+
+### Manual Session Creation (Non-Next.js)
+
+For frameworks other than Next.js, you manually create the session:
+
+```typescript
+import { SAMLProvider, SessionManager, createExpressCookieStore } from 'weblogin-auth-sdk';
+
+app.post('/auth/callback', async (req, res) => {
+  // Step 1: Validate SAML and get user
+  const { user, returnTo } = await samlProvider.authenticate({ req });
+  
+  // Step 2: Create cookie store for your framework
+  const cookieStore = createExpressCookieStore(req, res);
+  
+  // Step 3: Initialize session manager
+  const sessionManager = new SessionManager(cookieStore, {
+    name: 'my-session',
+    secret: process.env.SESSION_SECRET!,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    }
+  });
+  
+  // Step 4: Create the session with user data
+  // This encrypts and sets the cookie
+  await sessionManager.createSession(user);
+  
+  // Optional: Create with custom metadata
+  await sessionManager.createSession(user, {
+    roles: ['user'],
+    loginTime: Date.now(),
+    department: user.department,
+  });
+  
+  res.redirect(returnTo || '/');
+});
+```
+
 ## Custom Session Management
 
 ### Session Enhancement
@@ -206,12 +327,8 @@ callbacks: {
       name: `${getAttr('firstName')} ${getAttr('lastName')}`,
 
       // Map Stanford-specific attributes
-      suid: getAttr('suid'),
       userName: getAttr('userName'),
       encodedSUID: getAttr('encodedSUID'),
-
-      // Oracle-specific attributes
-      sessionId: getAttr('oracle:cloud:identity:sessionid'),
     };
   }
 }

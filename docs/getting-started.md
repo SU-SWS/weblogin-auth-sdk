@@ -44,26 +44,34 @@ export async function GET() {
   return await auth.login({ returnTo: '/dashboard' });
 }
 
-// app/api/auth/acs/route.ts
+// app/api/auth/acs/route.ts (SAML Assertion Consumer Service)
 import { NextRequest } from 'next/server';
 import { auth } from '@/utils/authInstance';
 
 export async function POST(request: NextRequest) {
-  // v2 uses 'authenticate' method for handling SAML callback
+  // The authenticate() method handles the complete SAML callback flow:
+  // 1. Validates the SAML response signature and assertions
+  // 2. Extracts user attributes from the SAML assertion
+  // 3. Creates an encrypted session cookie with the user data
+  // 4. Returns the returnTo URL from RelayState
   try {
     const { returnTo } = await auth.authenticate(request);
 
-    // Get the current session to access user data
+    // Session is now created and stored in an encrypted cookie.
+    // You can optionally access it immediately:
     const session = await auth.getSession();
 
     if (session?.user) {
-      // Do something with the user.
+      console.log('User authenticated:', session.user.id);
+      // session.user contains: { id, email, name, imageUrl, ... }
     }
 
+    // Redirect to the original page or a default
     const redirectUrl = returnTo || '/';
     return Response.redirect(new URL(redirectUrl, request.url));
 
   } catch (error) {
+    console.error('Authentication failed:', error);
     return Response.redirect(new URL('/login?error=auth_failed', request.url));
   }
 }
@@ -119,20 +127,37 @@ app.get('/auth/login', async (req, res) => {
   res.redirect(loginUrl);
 });
 
-// SAML callback (ACS)
+// SAML callback (ACS) - Assertion Consumer Service
 app.post('/auth/callback', async (req, res) => {
   try {
+    // Step 1: Validate SAML response and extract user profile
+    // The authenticate() method verifies the SAML signature, checks
+    // conditions (NotBefore, NotOnOrAfter, Audience), and maps
+    // SAML attributes to a User object.
     const { user, returnTo } = await samlProvider.authenticate({ req });
 
+    // Step 2: Create the session cookie store
     const cookieStore = createExpressCookieStore(req, res);
     const sessionManager = new SessionManager(cookieStore, {
       name: 'weblogin-auth-session',
       secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
     });
 
+    // Step 3: Create an encrypted session with the authenticated user
+    // This sets an HttpOnly, Secure cookie with the session data.
+    // The session includes: user, meta, issuedAt, expiresAt
     await sessionManager.createSession(user);
+
+    // Optional: Add custom metadata to the session
+    // await sessionManager.createSession(user, {
+    //   roles: ['user'],
+    //   department: user.department,
+    // });
+
+    // Step 4: Redirect to the original page
     res.redirect(returnTo || '/dashboard');
   } catch (error) {
+    console.error('Authentication failed:', error);
     res.redirect('/login?error=auth_failed');
   }
 });

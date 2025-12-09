@@ -67,7 +67,6 @@ const auth = createWebLoginNext({
       id: profile.encodedSUID,
       email: `${profile.userName}@stanford.edu`,
       name: `${profile.firstName} ${profile.lastName}`,
-      suid: profile.suid,
     }),
 
     // Authentication events

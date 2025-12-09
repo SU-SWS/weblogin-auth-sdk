@@ -19,10 +19,6 @@ export type User = {
    */
   name?: string;
 
-  /**
-   * Profile image URL of the user (optional)
-   */
-  imageUrl?: string;
   [key: string]: unknown; // Allow additional user properties
 };
 
@@ -562,10 +558,7 @@ export type LogoutOptions = {
 export type SAMLResponseAttributes = {
   firstName?: string;
   lastName?: string;
-  'oracle:cloud:identity:sessionid': string;
   encodedSUID: string;
-  suid?: string;
-  'oracle:cloud:identity:url': string;
   userName: string;
   [key: string]: unknown;
 };

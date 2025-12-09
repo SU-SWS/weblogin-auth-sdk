@@ -660,11 +660,13 @@ export class SAMLProvider {
     // Extract user information from Stanford SAML attributes
     const attributes = profile.attributes || profile;
 
-    // Map OID attributes to friendly names
+    // Map OID attributes to friendly names and remove the original URN keys
     const mappedAttributes: Record<string, unknown> = { ...attributes };
     Object.entries(attributes).forEach(([key, value]) => {
       if (OID_MAP[key]) {
         mappedAttributes[OID_MAP[key]] = value;
+        // Remove the original URN/OID key since we've mapped it to a friendly name
+        delete mappedAttributes[key];
       }
     });
 
@@ -672,9 +674,6 @@ export class SAMLProvider {
       id: (mappedAttributes.encodedSUID || mappedAttributes.uid || mappedAttributes.nameID || 'unknown') as string,
       email: (mappedAttributes.email || mappedAttributes.mail || (mappedAttributes.userName ? `${mappedAttributes.userName}@stanford.edu` : undefined)) as string | undefined,
       name: (mappedAttributes.displayName || (mappedAttributes.firstName && mappedAttributes.lastName ? `${mappedAttributes.firstName} ${mappedAttributes.lastName}` : undefined) || (mappedAttributes.givenName && mappedAttributes.sn ? `${mappedAttributes.givenName} ${mappedAttributes.sn}` : undefined)) as string | undefined,
-      sessionId: (mappedAttributes.sessionIndex || mappedAttributes.sessionId) as string | undefined,
-      suid: mappedAttributes.suid as string | undefined,
-      imageUrl: mappedAttributes.imageUrl as string | undefined,
       ...mappedAttributes,
     };
   }

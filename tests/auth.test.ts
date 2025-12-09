@@ -152,6 +152,9 @@ describe('SAMLProvider', () => {
     const provider = new SAMLProvider({
       issuer: 'test-issuer',
       idpCert: 'test-cert',
+      returnToOrigin: 'https://app.example.com',
+      privateKey: 'test-private-key',
+      cert: 'test-public-cert',
       additionalParams: {},
       additionalAuthorizeParams: {},
     } as any);

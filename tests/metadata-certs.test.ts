@@ -9,6 +9,7 @@ describe('SAMLProvider Metadata Certificates', () => {
     issuer: 'test-issuer',
     idpCert: 'idp-cert',
     returnToOrigin: 'https://example.com',
+    privateKey: 'test-private-key',
     cert: mockCert,
     decryptionCert: mockDecryptionCert,
   };

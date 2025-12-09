@@ -149,15 +149,18 @@ export class SAMLProvider {
     const rawPrivateKey = config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY;
     const privateKey = AuthUtils.formatKey(rawPrivateKey || '');
 
-    const decryptionPvk = AuthUtils.formatKey(
-      config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY || ''
-    );
+    // Decryption keys are optional - only process if explicitly provided
+    // Use undefined (not empty string) when not provided, so node-saml doesn't require decryptionCert
+    const rawDecryptionPvk = config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY;
+    const decryptionPvk = rawDecryptionPvk ? AuthUtils.formatKey(rawDecryptionPvk) : undefined;
 
     // Determine public cert (prioritize explicit config, then env)
     const rawCert = config.cert || process.env.WEBLOGIN_AUTH_SAML_SP_CERT;
     const cert = AuthUtils.formatKey(rawCert || '');
 
-    const decryptionCert = config.decryptionCert ? AuthUtils.formatKey(config.decryptionCert) : undefined;
+    // Decryption cert is optional - only process if explicitly provided
+    const rawDecryptionCert = config.decryptionCert || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT;
+    const decryptionCert = rawDecryptionCert ? AuthUtils.formatKey(rawDecryptionCert) : undefined;
 
     // Build configuration with defaults and environment variable fallbacks
     const samlConfig = {

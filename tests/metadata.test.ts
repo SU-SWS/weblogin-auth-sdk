@@ -10,6 +10,8 @@ describe('SAMLProvider Metadata', () => {
     returnToOrigin: 'https://app.example.com',
     entryPoint: 'https://idp.example.com/sso',
     returnToPath: '/auth/callback',
+    privateKey: 'test-private-key',
+    cert: 'test-public-cert',
   };
 
   const logger = new DefaultLogger();
@@ -26,7 +28,8 @@ describe('SAMLProvider Metadata', () => {
     const metadata = provider.getMetadata();
 
     expect(metadata).toMatch(/<EntityDescriptor validUntil="[^"]+">...<\/EntityDescriptor>/);
-    expect(mockGenerateMetadata).toHaveBeenCalledWith(null, null);
+    // With cert in config, it should pass null for decryption and the configured cert for signing
+    expect(mockGenerateMetadata).toHaveBeenCalledWith(null, 'test-public-cert');
   });
 
   test('should generate metadata with certificates', () => {

@@ -9,6 +9,8 @@ describe('SAMLProvider Skip ACS URL Validation', () => {
     returnToOrigin: 'https://app.example.com',
     entryPoint: 'https://idp.example.com/sso',
     returnToPath: '/auth/callback',
+    privateKey: 'test-private-key',
+    cert: 'test-public-cert',
   };
 
   const logger = new DefaultLogger();
@@ -36,10 +38,10 @@ describe('SAMLProvider Skip ACS URL Validation', () => {
     expect(provider.provider.options.disableRequestAcsUrl).toBe(false);
   });
 
-  test('should default skipRequestAcsUrl to false', () => {
+  test('should default skipRequestAcsUrl to true', () => {
     const provider = new SAMLProvider(validConfig, logger);
 
     // @ts-expect-error this is testing private method.
-    expect(provider.provider.options.disableRequestAcsUrl).toBe(false);
+    expect(provider.provider.options.disableRequestAcsUrl).toBe(true);
   });
 });

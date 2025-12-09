@@ -46,6 +46,8 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDZ
       idpCert: 'test-certificate',
       returnToOrigin: 'https://app.example.com',
       entryPoint: 'https://idp.example.com/sso',
+      privateKey: 'test-private-key',
+      cert: 'test-public-cert',
     };
 
     it('should clean idpCert in config', () => {

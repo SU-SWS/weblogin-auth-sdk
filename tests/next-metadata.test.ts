@@ -17,6 +17,8 @@ describe('WebLoginNext Metadata', () => {
       issuer: 'test-issuer',
       idpCert: 'test-certificate',
       returnToOrigin: 'https://app.example.com',
+      privateKey: 'test-private-key',
+      cert: 'test-public-cert',
     },
     session: {
       name: 'test-session',

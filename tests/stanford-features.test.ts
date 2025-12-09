@@ -23,6 +23,8 @@ describe('Stanford Specific Features', () => {
       issuer: 'test-entity',
       idpCert: 'test-cert',
       returnToOrigin: 'https://test.com',
+      privateKey: 'test-private-key',
+      cert: 'test-public-cert',
     });
   });
 

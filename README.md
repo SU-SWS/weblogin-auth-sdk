@@ -2,7 +2,7 @@
 
 **Version 3**
 
-A framework-agnostic TypeScript authentication library for Stanford Pass SAML integration. 
+A framework-agnostic TypeScript authentication library for Stanford Weblogin integration. 
 Designed for serverless, stateless environments with security-first defaults and cookie-only sessions.
 
 ## Features
@@ -30,17 +30,6 @@ Designed for serverless, stateless environments with security-first defaults and
 
 🔄 **[Migration Guide](./docs/migration.md)** - Migrating from v1.x and other authentication libraries
 
-## Environment Variables
-
-Set these required environment variables:
-
-```bash
-WEBLOGIN_AUTH_SAML_ENTITY="your-saml-entity-id"
-WEBLOGIN_AUTH_SAML_CERT="-----BEGIN CERTIFICATE-----..."
-WEBLOGIN_AUTH_SAML_RETURN_ORIGIN="https://your-app.com"
-WEBLOGIN_AUTH_SESSION_SECRET="your-32-character-minimum-secret"
-```
-
 ## Key Features
 
 ### Security First
@@ -60,106 +49,13 @@ WEBLOGIN_AUTH_SESSION_SECRET="your-32-character-minimum-secret"
 - Cookie-only sessions (no server storage)
 - Comprehensive test coverage
 
-## Quick Examples
-
-### Getting User Session
-
-```typescript
-const session = await auth.getSession();
-if (session) {
-  console.log('User:', session.user.name);
-  console.log('Authenticated:', await auth.isAuthenticated());
-}
-```
-
-### Updating Session Data
-
-```typescript
-// Add custom metadata to session
-await auth.updateSession({
-  meta: {
-    theme: 'dark',
-    language: 'en',
-    lastVisited: '/dashboard',
-    preferences: { notifications: true }
-  }
-});
-
-// Update user information in session
-const currentSession = await auth.getSession();
-await auth.updateSession({
-  user: {
-    ...currentSession?.user,
-    displayName: 'John Doe',
-    avatar: '/images/avatar.jpg'
-  }
-});
-```
-
-### Client-Side Authentication Check
-
-```typescript
-// Check authentication status in browser JavaScript
-import { isAuthenticated } from 'weblogin-auth-sdk/session';
-
-if (isAuthenticated('weblogin-auth')) {
-  console.log('User is authenticated');
-} else {
-  window.location.href = '/api/auth/login';
-}
-```
-
-### Protecting Routes
-
-```typescript
-// Next.js middleware
-export async function middleware(request: NextRequest) {
-  const session = await auth.getSession(request);
-  if (!session && request.nextUrl.pathname.startsWith('/protected')) {
-    return Response.redirect(new URL('/api/auth/login', request.url));
-  }
-}
-```
-
-### Custom Profile Mapping
-
-```typescript
-const auth = createWebLoginNext({
-  // ... config
-  callbacks: {
-    mapProfile: async (profile) => ({
-      id: profile.encodedSUID,
-      email: `${profile.userName}@stanford.edu`,
-      name: `${profile.firstName} ${profile.lastName}`,
-      department: profile.department,
-    }),
-  },
-});
-```
-
-### Edge Function Session Validation
-
-```typescript
-// Ultra-fast session checking in edge functions
-import { isAuthenticatedEdge } from 'weblogin-auth-sdk/edge-session';
-
-export async function middleware(request: NextRequest) {
-  const isAuthenticated = await isAuthenticatedEdge(request);
-  if (!isAuthenticated && request.nextUrl.pathname.startsWith('/protected')) {
-    return Response.redirect(new URL('/api/auth/login', request.url));
-  }
-}
-
-export const config = { runtime: 'edge' };
-```
-
 ## License
 
 GNU Version 3 License - see [LICENSE](./LICENSE) for details.
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines and submit pull requests to our GitHub repository.
+Contributions are welcome! Please submit pull requests to our GitHub repository.
 
 ## Security
 

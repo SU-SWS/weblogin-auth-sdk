@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "npm run build",
+			"type": "shell",
+			"command": "npm run build"
+		},
+		{
+			"label": "TypeScript check",
+			"type": "shell",
+			"command": "npx tsc --noEmit 2>&1"
+		}
+	]
+}

@@ -1,14 +1,21 @@
-name: Run Eslint
-on: push
+name: Lint
+on:
+  push:
+  # pull_request:
+
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set the correct Node version using nvm
         shell: bash -l {0}
         run: nvm install
-      - name: Install modules
-        run: npm ci
-      - name: Run ESLint
+      - uses: bahmutov/npm-install@v1
+        with:
+          useLockFile: false
+      - name: Lint
         run: npm run lint

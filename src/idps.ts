@@ -1,10 +1,19 @@
-import url from 'node:url';
-const idps = {
+/**
+ * Pre-configured Identity Providers (IdPs) for Stanford WebLogin
+ */
+
+export interface IdpPreset {
+  entityID: string;
+  description: string;
+  entryPoint: string;
+  cert: string | string[];
+}
+
+export const idps: Record<string, IdpPreset> = {
   itlab: {
     entityID: 'https://weblogin.itlab.stanford.edu/idp/shibboleth',
     description: 'Stanford IT Lab IdP V3',
-    entryPoint:
-      'https://login.itlab.stanford.edu/idp/profile/SAML2/Redirect/SSO',
+    entryPoint: 'https://login.itlab.stanford.edu/idp/profile/SAML2/Redirect/SSO',
     cert: [
       'MIIDVzCCAj+gAwIBAgIUZn2ik8sAxxolY3yWAiMEI8BvhlswDQYJKoZIhvcNAQEL',
       'BQAwJjEkMCIGA1UEAwwbd2VibG9naW4uaXRsYWIuc3RhbmZvcmQuZWR1MB4XDTE2',
@@ -153,6 +162,6 @@ const idps = {
 };
 
 // create a 'stanford' alias for the production IdP
-idps['stanford'] = idps['prod'];
+export const stanford = idps.prod;
 
 export default idps;

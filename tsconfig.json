@@ -1,12 +1,17 @@
 {
   "compilerOptions": {
-    "outDir": "./dist",
-    "module": "commonjs",
+    "outDir": "./dist/esm",
+    "module": "nodenext",
     "declaration": true,
-    "target": "es5",
+    "target": "es2022",
     "allowJs": true,
-    "moduleResolution": "node"
+    "moduleResolution": "nodenext",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true
   },
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist", "tests"]
 }

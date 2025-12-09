@@ -1,8 +1,0 @@
-{
-  "rules": {
-    "patch": ["package.json"],
-    "frontend": ["*.js", "*.css", "*.scss", "*.jsx", "*.ts", "*.tsx"],
-    "component": ["src/components"],
-    "backend": ["src/pages/api/*"],
-  }
-}

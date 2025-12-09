@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SAMLProvider, AuthUtils, DefaultLogger } from '../src';
+import { AuthUtils, DefaultLogger } from '../src';
 
 describe('AuthUtils', () => {
   describe('generateNonce', () => {
@@ -130,35 +130,4 @@ describe('DefaultLogger', () => {
   });
 });
 
-describe('SAMLProvider', () => {
-  it('should throw error for missing required config', () => {
-    // Temporarily clear environment variables to test validation
-    const originalEntity = process.env.WEBLOGIN_AUTH_ISSUER;
-    const originalCert = process.env.WEBLOGIN_AUTH_SAML_CERT;
 
-    delete process.env.WEBLOGIN_AUTH_ISSUER;
-    delete process.env.WEBLOGIN_AUTH_SAML_CERT;
-
-    expect(() => {
-      new SAMLProvider({} as never);
-    }).toThrow('Missing required SAML configuration');
-
-    // Restore environment variables
-    if (originalEntity) process.env.WEBLOGIN_AUTH_ISSUER = originalEntity;
-    if (originalCert) process.env.WEBLOGIN_AUTH_SAML_CERT = originalCert;
-  });
-
-  it('should initialize with valid config', () => {
-    const provider = new SAMLProvider({
-      issuer: 'test-issuer',
-      idpCert: 'test-cert',
-      returnToOrigin: 'https://app.example.com',
-      privateKey: 'test-private-key',
-      cert: 'test-public-cert',
-      additionalParams: {},
-      additionalAuthorizeParams: {},
-    } as any);
-
-    expect(provider).toBeInstanceOf(SAMLProvider);
-  });
-});

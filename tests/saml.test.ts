@@ -150,7 +150,9 @@ describe('SAMLProvider', () => {
       // @ts-expect-error accessing private property for testing
       const options = provider.provider.options;
 
-      expect(options.publicCert).toBe('test-public-cert');
+      // Certificates and keys are now in PEM format
+      expect(options.publicCert).toContain('test-public-cert');
+      expect(options.publicCert).toContain('-----BEGIN CERTIFICATE-----');
       expect(options.signatureAlgorithm).toBe('sha512');
       expect(options.digestAlgorithm).toBe('sha512');
       expect(options.xmlSignatureTransforms).toEqual(['transform1']);
@@ -199,7 +201,7 @@ CLEAN_ME
       expect(provider.provider.options.idpCert).toBe('CLEAN_ME');
     });
 
-    test('should clean privateKey headers/footers', () => {
+    test('should normalize privateKey to PEM format', () => {
       const config = {
         ...validConfig,
         privateKey: `-----BEGIN PRIVATE KEY-----
@@ -208,7 +210,8 @@ CLEAN_ME_KEY
       };
       const provider = new SAMLProvider(config);
       // @ts-expect-error accessing private property for testing
-      expect(provider.provider.options.privateKey).toBe('CLEAN_ME_KEY');
+      // privateKey must be in PEM format for node-saml signing operations
+      expect(provider.provider.options.privateKey).toBe('-----BEGIN PRIVATE KEY-----\nCLEAN_ME_KEY\n-----END PRIVATE KEY-----');
     });
 
     test('should normalize decryptionPvk to PEM format', () => {
@@ -622,7 +625,11 @@ CLEAN_ME_2
 
       provider.getMetadata();
 
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('test-decryption-cert', 'test-public-cert');
+      // Certs are now in PEM format
+      expect(mockGenerateMetadata).toHaveBeenCalledWith(
+        expect.stringContaining('test-decryption-cert'),
+        expect.stringContaining('test-public-cert')
+      );
     });
 
     test('should use decryption cert from config when provided', () => {
@@ -638,7 +645,11 @@ CLEAN_ME_2
 
       provider.getMetadata();
 
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('custom-decryption-cert', 'test-public-cert');
+      // Certs are now in PEM format
+      expect(mockGenerateMetadata).toHaveBeenCalledWith(
+        expect.stringContaining('custom-decryption-cert'),
+        expect.stringContaining('test-public-cert')
+      );
     });
 
     test('should use decryption cert from argument when provided', () => {
@@ -650,7 +661,11 @@ CLEAN_ME_2
 
       provider.getMetadata('arg-decryption-cert');
 
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('arg-decryption-cert', 'test-public-cert');
+      // Argument certs are passed as-is, config certs are in PEM format
+      expect(mockGenerateMetadata).toHaveBeenCalledWith(
+        'arg-decryption-cert',
+        expect.stringContaining('test-public-cert')
+      );
     });
 
     test('should prioritize argument certs over configured certs', () => {
@@ -684,7 +699,11 @@ CLEAN_ME_2
 
       provider.getMetadata();
 
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('configured-decryption-cert', 'configured-signing-cert');
+      // Certs are now in PEM format
+      expect(mockGenerateMetadata).toHaveBeenCalledWith(
+        expect.stringContaining('configured-decryption-cert'),
+        expect.stringContaining('configured-signing-cert')
+      );
     });
 
     test('should remove AssertionConsumerService elements when skipEndpoints option is true', () => {

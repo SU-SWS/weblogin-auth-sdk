@@ -124,7 +124,7 @@ CLEAN_ME
       expect(provider.provider.options.idpCert).toBe('CLEAN_ME');
     });
 
-    it('should clean privateKey in config', () => {
+    it('should normalize privateKey to PEM format', () => {
       const config = {
         ...validConfig,
         privateKey: `-----BEGIN PRIVATE KEY-----
@@ -133,7 +133,8 @@ CLEAN_ME_KEY
       };
       const provider = new SAMLProvider(config);
       // @ts-expect-error this is testing private method.
-      expect(provider.provider.options.privateKey).toBe('CLEAN_ME_KEY');
+      // privateKey must be in PEM format for node-saml signing operations
+      expect(provider.provider.options.privateKey).toBe('-----BEGIN PRIVATE KEY-----\nCLEAN_ME_KEY\n-----END PRIVATE KEY-----');
     });
 
     it('should normalize decryptionPvk to PEM format', () => {

@@ -146,8 +146,9 @@ export class SAMLProvider {
       : AuthUtils.formatKey(rawIdpCert as string);
 
     // Determine private key (prioritize explicit config, then env)
+    // Private key must be in PEM format for node-saml's signing operations
     const rawPrivateKey = config.privateKey || process.env.WEBLOGIN_AUTH_SAML_PRIVATE_KEY;
-    const privateKey = AuthUtils.formatKey(rawPrivateKey || '');
+    const privateKey = rawPrivateKey ? AuthUtils.formatPrivateKey(rawPrivateKey) : '';
 
     // Decryption private key must be in PEM format for node-saml's decryption
     // Use formatPrivateKey to ensure proper PEM format with headers
@@ -155,12 +156,13 @@ export class SAMLProvider {
     const decryptionPvk = rawDecryptionPvk ? AuthUtils.formatPrivateKey(rawDecryptionPvk) : undefined;
 
     // Determine public cert (prioritize explicit config, then env)
+    // Use formatCertificate to ensure proper PEM format for signing operations
     const rawCert = config.cert || process.env.WEBLOGIN_AUTH_SAML_SP_CERT;
-    const cert = AuthUtils.formatKey(rawCert || '');
+    const cert = rawCert ? AuthUtils.formatCertificate(rawCert) : '';
 
-    // Decryption cert - use formatKey for base64 only (metadata uses raw base64)
+    // Decryption cert - use formatCertificate for proper PEM format
     const rawDecryptionCert = config.decryptionCert || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT;
-    const decryptionCert = rawDecryptionCert ? AuthUtils.formatKey(rawDecryptionCert) : undefined;
+    const decryptionCert = rawDecryptionCert ? AuthUtils.formatCertificate(rawDecryptionCert) : undefined;
 
     // Build configuration with defaults and environment variable fallbacks
     const samlConfig = {

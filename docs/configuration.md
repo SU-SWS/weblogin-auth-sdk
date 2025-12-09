@@ -48,7 +48,7 @@ const auth = createWebLoginNext({
     wantAssertionsSigned: true,
     wantAuthnResponseSigned: true,
     acceptedClockSkewMs: 60000,
-    skipRequestAcsUrl: false, // Set to true for dynamic deployments (e.g. Vercel preview)
+    skipRequestAcsUrl: true, // Default: skips ACS URL in both AuthnRequest and metadata
   },
   session: {
     // Required
@@ -132,7 +132,7 @@ Available presets:
 | `wantAssertionsSigned` | `boolean` | `true` | Require signed SAML assertions |
 | `wantAuthnResponseSigned` | `boolean` | `true` | Require signed SAML responses |
 | `acceptedClockSkewMs` | `number` | `60000` | Allowed clock skew in milliseconds |
-| `skipRequestAcsUrl` | `boolean` | `true` | Skip ACS URL validation in AuthnRequest (useful for dynamic deployments) |
+| `skipRequestAcsUrl` | `boolean` | `true` | Skip ACS URL in AuthnRequest and generated metadata. When enabled, the AuthnRequest won't include `AssertionConsumerServiceURL` and the metadata won't include `AssertionConsumerService` elements. This is useful for dynamic deployments (e.g. Vercel preview) and is compatible with Stanford's `skipEndpointValidationWhenSigned` IdP configuration. See [Stanford's documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) |
 | `decryptionCert` | `string` | `undefined` | Public certificate for SAML decryption (PEM format) |
 | `signatureAlgorithm` | `string` | `'sha256'` | SAML signature algorithm ('sha1', 'sha256', 'sha512') |
 | `digestAlgorithm` | `string` | `'sha1'` | SAML digest algorithm ('sha1', 'sha256', 'sha512') |

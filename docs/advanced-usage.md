@@ -298,16 +298,23 @@ const sessionManager = new SessionManager(cookieStore, sessionConfig);
 
 You can generate the SAML Service Provider metadata XML for your application, which is often required when registering your SP with an Identity Provider.
 
+By default, the generated metadata excludes `AssertionConsumerService` endpoints when `skipRequestAcsUrl` is `true` (the default). This is compatible with Stanford's `skipEndpointValidationWhenSigned` IdP configuration, where the IdP accepts the ACS URL directly from signed AuthnRequests without checking it against metadata endpoints.
+
 ```typescript
-// Generate metadata without certificates
+// Generate metadata (by default excludes ACS endpoints when skipRequestAcsUrl is true)
 const metadata = samlProvider.getMetadata();
 
-// Generate metadata with encryption and signing certificates
-const metadataWithCerts = samlProvider.getMetadata(
-  fs.readFileSync('decryption-cert.pem', 'utf8'),
-  fs.readFileSync('signing-cert.pem', 'utf8')
-);
+// Generate metadata with custom certificates
+const metadataWithCerts = samlProvider.getMetadata({
+  decryptionCert: fs.readFileSync('decryption-cert.pem', 'utf8'),
+  signingCert: fs.readFileSync('signing-cert.pem', 'utf8'),
+});
+
+// Force include ACS endpoints (for IdPs that require them in metadata)
+const metadataWithAcs = samlProvider.getMetadata({ skipEndpoints: false });
 ```
+
+See [Stanford's skipEndpointValidation documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) for more details.
 
 ### Custom Attribute Mapping
 
@@ -505,9 +512,19 @@ These will be available in the `user` object returned by `authenticate` or `getS
 
 ### Metadata Enhancements
 
-The `getMetadata` method automatically injects a `validUntil` attribute (set to 1 year from generation) into the `EntityDescriptor`, as recommended by Stanford's SPDB guidelines.
+The `getMetadata` method includes several enhancements:
+
+1. **validUntil attribute**: Automatically injects a `validUntil` attribute (set to 1 year from generation) into the `EntityDescriptor`, as recommended by Stanford's SPDB guidelines.
+
+2. **Skip ACS endpoints**: By default (when `skipRequestAcsUrl: true`), `AssertionConsumerService` elements are excluded from the metadata. This is compatible with Stanford's `skipEndpointValidationWhenSigned` IdP configuration.
 
 ```typescript
 const metadata = auth.getMetadata();
 // Output includes: <EntityDescriptor validUntil="2025-..." ...>
+// AssertionConsumerService elements are excluded by default
+
+// To include ACS endpoints:
+const metadataWithAcs = auth.getMetadata({ skipEndpoints: false });
 ```
+
+See [Stanford's skipEndpointValidation documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) for more details on when to include or exclude ACS endpoints.

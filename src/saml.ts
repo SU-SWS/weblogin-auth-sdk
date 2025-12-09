@@ -161,6 +161,9 @@ export class SAMLProvider {
       config.decryptionPvk || process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY || ''
     );
 
+    const cert = config.cert ? AuthUtils.formatKey(config.cert) : undefined;
+    const decryptionCert = config.decryptionCert ? AuthUtils.formatKey(config.decryptionCert) : undefined;
+
     // Build configuration with defaults and environment variable fallbacks
     const samlConfig = {
       // Required fields (must be provided)
@@ -172,6 +175,8 @@ export class SAMLProvider {
       audience: config.audience || `https://${config.issuer || process.env.WEBLOGIN_AUTH_ISSUER || 'weblogin'}.stanford.edu`,
       privateKey,
       decryptionPvk,
+      cert,
+      decryptionCert,
 
       // IDP Entry Point
       entryPoint: config.entryPoint || process.env.WEBLOGIN_AUTH_IDP_ENTRY_POINT || 'https://idp.stanford.edu/idp/profile/SAML2/Redirect/SSO',
@@ -212,8 +217,8 @@ export class SAMLProvider {
       issuer: samlConfig.issuer,
       idpCert: samlConfig.idpCert,
       audience: samlConfig.audience,
-      privateKey: samlConfig.privateKey,
-      decryptionPvk: samlConfig.decryptionPvk,
+      privateKey: samlConfig.privateKey || undefined,
+      decryptionPvk: samlConfig.decryptionPvk || undefined,
       identifierFormat: samlConfig.identifierFormat,
       wantAssertionsSigned: samlConfig.wantAssertionsSigned,
       wantAuthnResponseSigned: samlConfig.wantAuthnResponseSigned,
@@ -507,6 +512,16 @@ export class SAMLProvider {
    * ```
    */
   getMetadata(decryptionCert?: string, signingCert?: string): string {
+
+    // Use the certs from the config if not provided
+    if (!decryptionCert && this.config.decryptionCert) {
+      decryptionCert = this.config.decryptionCert;
+    }
+
+    if (!signingCert && this.config.cert) {
+      signingCert = this.config.cert;
+    }
+
     let metadata = this.provider.generateServiceProviderMetadata(decryptionCert ?? null, signingCert ?? null);
 
     // Add validUntil attribute to EntityDescriptor (valid for 1 year)

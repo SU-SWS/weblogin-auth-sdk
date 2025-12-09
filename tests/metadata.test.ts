@@ -45,4 +45,22 @@ describe('SAMLProvider Metadata', () => {
     expect(metadata).toMatch(/<EntityDescriptor validUntil="[^"]+">...<\/EntityDescriptor>/);
     expect(mockGenerateMetadata).toHaveBeenCalledWith(decryptionCert, signingCert);
   });
+
+  test('should use configured certificates if not provided as arguments', () => {
+    const configWithCerts = {
+      ...validConfig,
+      cert: 'configured-signing-cert',
+      decryptionCert: 'configured-decryption-cert',
+    };
+    const provider = new SAMLProvider(configWithCerts, logger);
+
+    const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor>...</EntityDescriptor>');
+    (provider as any).provider = {
+      generateServiceProviderMetadata: mockGenerateMetadata,
+    };
+
+    provider.getMetadata();
+
+    expect(mockGenerateMetadata).toHaveBeenCalledWith('configured-decryption-cert', 'configured-signing-cert');
+  });
 });

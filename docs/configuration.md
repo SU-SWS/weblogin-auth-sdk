@@ -127,6 +127,8 @@ Available presets:
 | `wantAuthnResponseSigned` | `boolean` | `true` | Require signed SAML responses |
 | `acceptedClockSkewMs` | `number` | `60000` | Allowed clock skew in milliseconds |
 | `skipRequestAcsUrl` | `boolean` | `false` | Skip ACS URL validation in AuthnRequest (useful for dynamic deployments) |
+| `cert` | `string` | `undefined` | Public certificate for SAML signing (PEM format) |
+| `decryptionCert` | `string` | `undefined` | Public certificate for SAML decryption (PEM format) |
 
 ## Session Configuration Options
 

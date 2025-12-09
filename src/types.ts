@@ -102,6 +102,18 @@ export interface OptionalSamlConfig {
   decryptionPvk?: string;
 
   /**
+   * Public certificate for SAML signing (PEM format)
+   * Used for generating Service Provider metadata
+   */
+  cert?: string;
+
+  /**
+   * Public certificate for SAML decryption (PEM format)
+   * Used for generating Service Provider metadata
+   */
+  decryptionCert?: string;
+
+  /**
    * SAML audience (usually entity URL)
    * @default `https://${issuer}.stanford.edu`
    */

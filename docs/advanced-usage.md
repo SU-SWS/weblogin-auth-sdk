@@ -298,20 +298,23 @@ const sessionManager = new SessionManager(cookieStore, sessionConfig);
 
 You can generate the SAML Service Provider metadata XML for your application, which is often required when registering your SP with an Identity Provider.
 
-By default, the generated metadata excludes `AssertionConsumerService` endpoints when `skipRequestAcsUrl` is `true` (the default). This is compatible with Stanford's `skipEndpointValidationWhenSigned` IdP configuration, where the IdP accepts the ACS URL directly from signed AuthnRequests without checking it against metadata endpoints.
+The generated metadata always includes `AssertionConsumerService` endpoints as required by SAML 2.0 schema. The ACS URL in metadata can be your canonical production URL.
+
+When using Stanford's `skipEndpointValidationWhenSigned` IdP configuration with `skipRequestAcsUrl: true` (the default), the IdP will accept the ACS URL from signed AuthnRequests without checking it against the metadata endpoints. This means:
+
+- **Metadata**: Include your canonical ACS URL (e.g., `https://your-app.com/api/auth/callback`)
+- **AuthnRequest**: Won't include `AssertionConsumerServiceURL` (when `skipRequestAcsUrl: true`)
+- **IdP**: Uses the actual request origin to send the response, regardless of what's in metadata
 
 ```typescript
-// Generate metadata (by default excludes ACS endpoints when skipRequestAcsUrl is true)
+// Generate metadata (always includes AssertionConsumerService elements)
 const metadata = samlProvider.getMetadata();
 
 // Generate metadata with custom certificates
-const metadataWithCerts = samlProvider.getMetadata({
-  decryptionCert: fs.readFileSync('decryption-cert.pem', 'utf8'),
-  signingCert: fs.readFileSync('signing-cert.pem', 'utf8'),
-});
-
-// Force include ACS endpoints (for IdPs that require them in metadata)
-const metadataWithAcs = samlProvider.getMetadata({ skipEndpoints: false });
+const metadataWithCerts = samlProvider.getMetadata(
+  fs.readFileSync('decryption-cert.pem', 'utf8'),
+  fs.readFileSync('signing-cert.pem', 'utf8')
+);
 ```
 
 See [Stanford's skipEndpointValidation documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) for more details.
@@ -516,15 +519,13 @@ The `getMetadata` method includes several enhancements:
 
 1. **validUntil attribute**: Automatically injects a `validUntil` attribute (set to 1 year from generation) into the `EntityDescriptor`, as recommended by Stanford's SPDB guidelines.
 
-2. **Skip ACS endpoints**: By default (when `skipRequestAcsUrl: true`), `AssertionConsumerService` elements are excluded from the metadata. This is compatible with Stanford's `skipEndpointValidationWhenSigned` IdP configuration.
+2. **AssertionConsumerService**: Always includes ACS endpoints as required by SAML 2.0 schema. The URL can be your canonical production URL - when `skipRequestAcsUrl: true` (default), the IdP uses the URL from signed AuthnRequests instead of validating against metadata.
 
 ```typescript
 const metadata = auth.getMetadata();
-// Output includes: <EntityDescriptor validUntil="2025-..." ...>
-// AssertionConsumerService elements are excluded by default
-
-// To include ACS endpoints:
-const metadataWithAcs = auth.getMetadata({ skipEndpoints: false });
+// Output includes:
+// - <EntityDescriptor validUntil="2025-..." ...>
+// - <AssertionConsumerService ...> (required by SAML 2.0 schema)
 ```
 
-See [Stanford's skipEndpointValidation documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) for more details on when to include or exclude ACS endpoints.
+See [Stanford's skipEndpointValidation documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) for details on how signed AuthnRequests work with dynamic URLs.

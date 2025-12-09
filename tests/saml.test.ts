@@ -706,7 +706,7 @@ CLEAN_ME_2
       );
     });
 
-    test('should remove AssertionConsumerService elements when skipEndpoints option is true', () => {
+    test('should always include AssertionConsumerService elements (required by SAML 2.0 schema)', () => {
       const provider = new SAMLProvider(validConfig, logger);
       const metadataWithAcs = `<EntityDescriptor entityID="test">
         <SPSSODescriptor>
@@ -720,107 +720,12 @@ CLEAN_ME_2
         generateServiceProviderMetadata: mockGenerateMetadata,
       };
 
-      const metadata = provider.getMetadata({ skipEndpoints: true });
-
-      expect(metadata).not.toContain('AssertionConsumerService');
-      expect(metadata).toContain('KeyDescriptor');
-      expect(metadata).toContain('SPSSODescriptor');
-    });
-
-    test('should keep AssertionConsumerService elements when skipEndpoints option is false', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const metadataWithAcs = `<EntityDescriptor entityID="test">
-        <SPSSODescriptor>
-          <AssertionConsumerService index="1" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example.com/acs"/>
-        </SPSSODescriptor>
-      </EntityDescriptor>`;
-      const mockGenerateMetadata = jest.fn().mockReturnValue(metadataWithAcs);
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      const metadata = provider.getMetadata({ skipEndpoints: false });
-
-      expect(metadata).toContain('AssertionConsumerService');
-    });
-
-    test('should use skipRequestAcsUrl from config when not specified in options', () => {
-      const configWithSkipEndpoints = {
-        ...validConfig,
-        skipRequestAcsUrl: true,
-      };
-      const provider = new SAMLProvider(configWithSkipEndpoints, logger);
-      const metadataWithAcs = `<EntityDescriptor entityID="test">
-        <SPSSODescriptor>
-          <AssertionConsumerService index="1" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example.com/acs"/>
-        </SPSSODescriptor>
-      </EntityDescriptor>`;
-      const mockGenerateMetadata = jest.fn().mockReturnValue(metadataWithAcs);
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
       const metadata = provider.getMetadata();
 
-      expect(metadata).not.toContain('AssertionConsumerService');
-    });
-
-    test('should allow options parameter to override config skipRequestAcsUrl', () => {
-      const configWithSkipEndpoints = {
-        ...validConfig,
-        skipRequestAcsUrl: true,
-      };
-      const provider = new SAMLProvider(configWithSkipEndpoints, logger);
-      const metadataWithAcs = `<EntityDescriptor entityID="test">
-        <SPSSODescriptor>
-          <AssertionConsumerService index="1" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example.com/acs"/>
-        </SPSSODescriptor>
-      </EntityDescriptor>`;
-      const mockGenerateMetadata = jest.fn().mockReturnValue(metadataWithAcs);
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      const metadata = provider.getMetadata({ skipEndpoints: false });
-
+      // SAML 2.0 schema requires AssertionConsumerService elements
       expect(metadata).toContain('AssertionConsumerService');
-    });
-
-    test('should accept options object with custom certificates', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      provider.getMetadata({
-        decryptionCert: 'options-decryption-cert',
-        signingCert: 'options-signing-cert',
-        skipEndpoints: false,
-      });
-
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('options-decryption-cert', 'options-signing-cert');
-    });
-
-    test('should handle self-closing AssertionConsumerService elements', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const metadataWithSelfClosingAcs = `<EntityDescriptor entityID="test">
-        <SPSSODescriptor>
-          <KeyDescriptor use="signing"/>
-          <NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</NameIDFormat>
-          <AssertionConsumerService index="1" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example.com/acs"/>
-        </SPSSODescriptor>
-      </EntityDescriptor>`;
-      const mockGenerateMetadata = jest.fn().mockReturnValue(metadataWithSelfClosingAcs);
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      const metadata = provider.getMetadata({ skipEndpoints: true });
-
-      expect(metadata).not.toContain('AssertionConsumerService');
-      expect(metadata).toContain('NameIDFormat');
       expect(metadata).toContain('KeyDescriptor');
+      expect(metadata).toContain('SPSSODescriptor');
     });
   });
 });

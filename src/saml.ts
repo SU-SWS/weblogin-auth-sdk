@@ -556,25 +556,18 @@ export class SAMLProvider {
   }
 
   /**
-   * Options for metadata generation
-   */
-  static MetadataOptions: {
-    decryptionCert?: string;
-    signingCert?: string;
-    skipEndpoints?: boolean;
-  };
-
-  /**
    * Generate SAML Service Provider Metadata
    *
    * Creates the XML metadata for this Service Provider to be shared with the Identity Provider.
-   * This metadata includes the Entity ID and optional certificates for signing/encryption.
+   * This metadata includes the Entity ID, ACS URL, and certificates for signing/encryption.
    *
-   * By default (when `skipRequestAcsUrl: true`), AssertionConsumerService endpoints are
-   * excluded from the metadata. This is compatible with Stanford's "skipEndpointValidationWhenSigned"
-   * IdP configuration where the IdP accepts the ACS URL from signed AuthnRequests directly.
+   * Note: The metadata always includes AssertionConsumerService elements as required by
+   * SAML 2.0 schema. When using Stanford's "skipEndpointValidationWhenSigned" IdP configuration,
+   * the IdP will accept the ACS URL from signed AuthnRequests without checking it against
+   * the metadata endpoints. Use `skipRequestAcsUrl: true` (the default) to omit the ACS URL
+   * from AuthnRequests.
    *
-   * @param decryptionCert - Optional public certificate for encryption (PEM format), or options object
+   * @param decryptionCert - Optional public certificate for encryption (PEM format)
    * @param signingCert - Optional public certificate for signing (PEM format)
    * @returns SAML Metadata XML string
    *
@@ -582,33 +575,14 @@ export class SAMLProvider {
    *
    * @example
    * ```typescript
-   * // Default metadata (no ACS endpoints when skipRequestAcsUrl is true)
+   * // Generate metadata
    * const metadata = samlProvider.getMetadata();
    *
-   * // Force include ACS endpoints
-   * const metadata = samlProvider.getMetadata({ skipEndpoints: false });
-   *
    * // With custom certificates
-   * const metadata = samlProvider.getMetadata({
-   *   decryptionCert: customDecryptCert,
-   *   signingCert: customSigningCert,
-   * });
+   * const metadata = samlProvider.getMetadata(customDecryptCert, customSigningCert);
    * ```
    */
-  getMetadata(optionsOrDecryptionCert?: string | { decryptionCert?: string; signingCert?: string; skipEndpoints?: boolean }, signingCert?: string): string {
-    let decryptionCert: string | undefined;
-    let skipEndpoints: boolean;
-
-    // Handle both old API (positional args) and new API (options object)
-    if (typeof optionsOrDecryptionCert === 'object' && optionsOrDecryptionCert !== null) {
-      decryptionCert = optionsOrDecryptionCert.decryptionCert;
-      signingCert = optionsOrDecryptionCert.signingCert;
-      skipEndpoints = optionsOrDecryptionCert.skipEndpoints ?? this.config.skipRequestAcsUrl ?? true;
-    } else {
-      decryptionCert = optionsOrDecryptionCert;
-      skipEndpoints = this.config.skipRequestAcsUrl ?? true;
-    }
-
+  getMetadata(decryptionCert?: string, signingCert?: string): string {
     // Use the certs from the config if not provided
     if (!decryptionCert && this.config.decryptionCert) {
       decryptionCert = this.config.decryptionCert;
@@ -629,18 +603,6 @@ export class SAMLProvider {
       '<EntityDescriptor',
       `<EntityDescriptor validUntil="${validUntil.toISOString()}"`
     );
-
-    // Remove AssertionConsumerService elements if skipEndpoints is enabled
-    // This is for Stanford's skipEndpointValidationWhenSigned IdP configuration
-    // When enabled, the IdP accepts the ACS URL from signed AuthnRequests directly
-    // See: https://uit.stanford.edu/service/saml/skipendpointvalidation
-    if (skipEndpoints) {
-      // Remove all AssertionConsumerService elements (handles multiline and single-line)
-      metadata = metadata.replace(/<AssertionConsumerService[^>]*\/>/g, '');
-      metadata = metadata.replace(/<AssertionConsumerService[^>]*>.*?<\/AssertionConsumerService>/gs, '');
-      // Clean up extra whitespace/newlines left behind
-      metadata = metadata.replace(/\n\s*\n/g, '\n');
-    }
 
     return metadata;
   }

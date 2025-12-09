@@ -205,18 +205,21 @@ export interface OptionalSamlConfig {
   logoutCallbackUrl?: string;
 
   /**
-   * Skip the Assertion Consumer Service URL in both the AuthnRequest and generated SP metadata.
-   * When enabled:
-   * - AuthnRequest will not include the optional AssertionConsumerServiceURL
-   * - Generated metadata will not include AssertionConsumerService endpoints
+   * Skip the Assertion Consumer Service URL in the AuthnRequest.
+   * When enabled, the AuthnRequest will not include the optional AssertionConsumerServiceURL.
    *
    * This is useful for:
-   * - Deployments with dynamic URLs (e.g. Vercel preview deployments)
+   * - Deployments with dynamic URLs (e.g. Vercel preview deployments, localhost development)
    * - Stanford's "skipEndpointValidationWhenSigned" IdP configuration
    *
    * When the IdP has skipEndpointValidationWhenSigned enabled and the SP signs
    * authentication requests, the IdP will accept the handler URL directly from
    * the signed request without checking it against metadata endpoints.
+   *
+   * Note: The generated SP metadata will always include AssertionConsumerService
+   * elements as required by SAML 2.0 schema. The ACS URL in metadata can be a
+   * canonical URL (e.g., your production URL) - the IdP will use the URL from
+   * the signed AuthnRequest for the actual response.
    *
    * @see https://uit.stanford.edu/service/saml/skipendpointvalidation
    * @default true

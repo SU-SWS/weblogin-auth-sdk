@@ -116,7 +116,7 @@ Ensure session secrets are available in edge environments:
 ```bash
 # Required in both Node.js and Edge environments
 WEBLOGIN_AUTH_SESSION_SECRET="your-32-character-secret"
-WEBLOGIN_AUTH_SESSION_NAME="weblogin-auth-session"
+WEBLOGIN_AUTH_SESSION_NAME="weblogin-auth"
 ```
 
 ### Debug Logging

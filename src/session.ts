@@ -139,7 +139,7 @@ export class SessionManager {
    * const sessionManager = new SessionManager(
    *   createWebCookieStore(request, response),
    *   {
-   *     name: 'weblogin-auth-session',
+   *     name: 'weblogin-auth',
    *     secret: process.env.SESSION_SECRET,
    *     cookie: {
    *       secure: true,
@@ -164,7 +164,7 @@ export class SessionManager {
         path: '/',
         maxAge: process.env.WEBLOGIN_AUTH_SESSION_EXPIRES_IN
           ? parseInt(process.env.WEBLOGIN_AUTH_SESSION_EXPIRES_IN, 10)
-          : 0, // Default to browser-session cookie
+          : undefined, // Default to browser-session cookie (no Max-Age = expires when browser closes)
         ...config.cookie,
       },
       cookieSizeThreshold: config.cookieSizeThreshold || 3500,

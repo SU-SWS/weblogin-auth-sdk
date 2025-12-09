@@ -216,12 +216,12 @@ describe('DefaultLogger', () => {
     it('should NOT redact cookie metadata (names, sizes, options)', () => {
       logger = new DefaultLogger();
       const cookieMetadata = {
-        cookieName: 'weblogin-auth-session',
-        mainCookieName: 'weblogin-auth-session',
-        jsCookieName: 'weblogin-auth-session-session',
+        cookieName: 'weblogin-auth',
+        mainCookieName: 'weblogin-auth',
+        jsCookieName: 'weblogin-auth-session',
         cookieSize: 1234,
-        mainCookie: 'weblogin-auth-session',
-        jsCookie: 'weblogin-auth-session-session',
+        mainCookie: 'weblogin-auth',
+        jsCookie: 'weblogin-auth-session',
         cookieOptions: { httpOnly: true, secure: true }
       };
 
@@ -231,12 +231,12 @@ describe('DefaultLogger', () => {
       const logData = JSON.parse(logCall);
 
       // Cookie metadata should NOT be redacted
-      expect(logData.cookieName).toBe('weblogin-auth-session');
-      expect(logData.mainCookieName).toBe('weblogin-auth-session');
-      expect(logData.jsCookieName).toBe('weblogin-auth-session-session');
+      expect(logData.cookieName).toBe('weblogin-auth');
+      expect(logData.mainCookieName).toBe('weblogin-auth');
+      expect(logData.jsCookieName).toBe('weblogin-auth-session');
       expect(logData.cookieSize).toBe(1234);
-      expect(logData.mainCookie).toBe('weblogin-auth-session');
-      expect(logData.jsCookie).toBe('weblogin-auth-session-session');
+      expect(logData.mainCookie).toBe('weblogin-auth');
+      expect(logData.jsCookie).toBe('weblogin-auth-session');
       expect(logData.cookieOptions).toEqual({ httpOnly: true, secure: true });
     });
 

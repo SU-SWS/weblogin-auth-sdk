@@ -145,7 +145,7 @@ WEBLOGIN_AUTH_CALLBACK_PATH="/api/auth/callback"
 
 **Description**: Name of the session cookie  
 **Type**: `string`  
-**Default**: `weblogin-auth-session`  
+**Default**: `weblogin-auth`  
 **Example**: `my-app-session`  
 
 ```bash

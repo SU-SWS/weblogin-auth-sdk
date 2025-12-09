@@ -135,7 +135,7 @@ export async function getSessionFromNextCookies(
 
   const sessionName = cookieName ||
     (typeof process !== 'undefined' ? process.env?.WEBLOGIN_AUTH_SESSION_NAME : undefined) ||
-    'weblogin-auth-session';
+    'weblogin-auth';
 
   if (!sessionSecret) {
     throw new Error('Session secret is required. Provide it as parameter or set WEBLOGIN_AUTH_SESSION_SECRET environment variable.');
@@ -183,7 +183,7 @@ export async function getSessionFromNextCookies(
  *     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!
  *   },
  *   session: {
- *     name: 'weblogin-auth-session',
+ *     name: 'weblogin-auth',
  *     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
  *   }
  * });
@@ -650,7 +650,7 @@ export class WebLoginNext {
  *     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!
  *   },
  *   session: {
- *     name: 'weblogin-auth-session',
+ *     name: 'weblogin-auth',
  *     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
  *   },
  *   verbose: process.env.NODE_ENV === 'development'

@@ -37,7 +37,7 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
   },
 });
@@ -60,7 +60,7 @@ const samlProvider = new SAMLProvider({
 const sessionManager = new SessionManager(
   createWebCookieStore(req, res),
   { 
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
   }
 );
@@ -93,7 +93,7 @@ export const auth = createWebLoginNext({
   },
   session: {
     // Required
-    name: 'weblogin-auth-session',  // Creates 'weblogin-auth-session' (main) and 'weblogin-auth-session-session' (JS) cookies
+    name: 'weblogin-auth',  // Creates 'weblogin-auth' (main) and 'weblogin-auth-session' (JS) cookies
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
 
     // Optional - customize as needed
@@ -221,7 +221,7 @@ await auth.updateSession({
 // Check authentication status in browser JavaScript
 import { isAuthenticated } from 'weblogin-auth-sdk/session';
 
-if (isAuthenticated('weblogin-auth-session')) {
+if (isAuthenticated('weblogin-auth')) {
   console.log('User is authenticated');
 } else {
   window.location.href = '/api/auth/login';

@@ -31,7 +31,7 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
   },
   verbose: process.env.NODE_ENV === 'development',
@@ -139,7 +139,7 @@ app.post('/auth/callback', async (req, res) => {
     // Step 2: Create the session cookie store
     const cookieStore = createExpressCookieStore(req, res);
     const sessionManager = new SessionManager(cookieStore, {
-      name: 'weblogin-auth-session',
+      name: 'weblogin-auth',
       secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
     });
 
@@ -166,7 +166,7 @@ app.post('/auth/callback', async (req, res) => {
 const requireAuth = async (req, res, next) => {
   const cookieStore = createExpressCookieStore(req, res);
   const sessionManager = new SessionManager(cookieStore, {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
   });
 

@@ -21,7 +21,7 @@
  *     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!
  *   },
  *   session: {
- *     name: 'weblogin-auth-session',
+ *     name: 'weblogin-auth',
  *     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!
  *   }
  * });

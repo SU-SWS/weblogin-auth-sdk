@@ -33,7 +33,7 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
     cookie: {
       maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -452,7 +452,7 @@ export const auth = createWebLoginNext({
     returnToOrigin: process.env.WEBLOGIN_AUTH_SAML_RETURN_ORIGIN!,
   },
   session: {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: process.env.WEBLOGIN_AUTH_SESSION_SECRET!,
   },
   callbacks: {

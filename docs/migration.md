@@ -87,7 +87,7 @@ const auth = createWebLoginNext({
     returnToOrigin: 'https://your-app.com',
   },
   session: {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: 'secret',
   },
 });

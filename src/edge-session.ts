@@ -85,7 +85,7 @@ export interface EdgeCookie {
  * @example
  * ```typescript
  * const parser = new EdgeCookieParser(request.headers.get('cookie'));
- * const sessionValue = parser.get('weblogin-auth-session');
+ * const sessionValue = parser.get('weblogin-auth');
  * const allCookies = parser.getAll();
  * ```
  */
@@ -135,7 +135,7 @@ export class EdgeCookieParser {
    *
    * @example
    * ```typescript
-   * const sessionValue = parser.get('weblogin-auth-session');
+   * const sessionValue = parser.get('weblogin-auth');
    * if (sessionValue) {
    *   // Process session cookie
    * }
@@ -182,7 +182,7 @@ export class EdgeCookieParser {
  * export default async function handler(request: Request) {
  *   const reader = new EdgeSessionReader(
  *     process.env.SESSION_SECRET,
- *     'weblogin-auth-session'
+ *     'weblogin-auth'
  *   );
  *
  *   const isAuth = await reader.isAuthenticated(request);
@@ -207,7 +207,7 @@ export class EdgeSessionReader {
    * Create a new edge session reader
    *
    * @param secret - Session secret for decrypting cookies (must be 32+ characters)
-   * @param cookieName - Name of the session cookie (defaults to 'weblogin-auth-session')
+   * @param cookieName - Name of the session cookie (defaults to 'weblogin-auth')
    * @param logger - Optional logger for debugging (defaults to silent logger)
    *
    * @throws {Error} If session secret is less than 32 characters
@@ -230,7 +230,7 @@ export class EdgeSessionReader {
    */
   constructor(
     secret: string,
-    cookieName: string = 'weblogin-auth-session',
+    cookieName: string = 'weblogin-auth',
     logger?: EdgeLogger
   ) {
     this.secret = secret;
@@ -461,7 +461,7 @@ export function createEdgeSessionReader(
   logger?: EdgeLogger
 ): EdgeSessionReader {
   const sessionSecret = secret || getEdgeEnv('WEBLOGIN_AUTH_SESSION_SECRET');
-  const sessionName = cookieName || getEdgeEnv('WEBLOGIN_AUTH_SESSION_NAME') || 'weblogin-auth-session';
+  const sessionName = cookieName || getEdgeEnv('WEBLOGIN_AUTH_SESSION_NAME') || 'weblogin-auth';
 
   if (!sessionSecret) {
     throw new Error('Session secret is required. Provide it as parameter or set WEBLOGIN_AUTH_SESSION_SECRET environment variable.');
@@ -515,7 +515,7 @@ export async function getUserIdFromRequest(
  * @example
  * ```typescript
  * const cookies = parseCookies(request.headers.get('cookie'));
- * const sessionCookie = cookies['weblogin-auth-session'];
+ * const sessionCookie = cookies['weblogin-auth'];
  *
  * if (sessionCookie) {
  *   const userId = await getUserIdFromCookie(sessionCookie, secret);

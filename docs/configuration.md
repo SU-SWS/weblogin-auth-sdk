@@ -51,7 +51,7 @@ const auth = createWebLoginNext({
     skipRequestAcsUrl: false, // Set to true for dynamic deployments (e.g. Vercel preview)
   },
   session: {
-    name: 'weblogin-auth-session',
+    name: 'weblogin-auth',
     secret: 'your-session-secret-32-chars-min',
     cookie: {
       httpOnly: true,

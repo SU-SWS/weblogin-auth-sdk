@@ -138,7 +138,7 @@ describe('getSessionFromNextCookies', () => {
     const result = await getSessionFromNextCookies(cookies);
 
     expect(result).toBeNull();
-    expect(cookies.get).toHaveBeenCalledWith('weblogin-auth-session');
+    expect(cookies.get).toHaveBeenCalledWith('weblogin-auth');
   });
 
   it('should use environment variables for configuration', async () => {

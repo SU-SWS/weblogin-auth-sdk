@@ -78,6 +78,31 @@ describe('AuthUtils', () => {
       const result = AuthUtils.sanitizeReturnTo('not-a-url', allowedOrigins);
       expect(result).toBeNull();
     });
+
+    it('should allow relative paths starting with /', () => {
+      const result = AuthUtils.sanitizeReturnTo('/protected', allowedOrigins);
+      expect(result).toBe('/protected');
+    });
+
+    it('should allow relative paths with nested segments', () => {
+      const result = AuthUtils.sanitizeReturnTo('/dashboard/settings/profile', allowedOrigins);
+      expect(result).toBe('/dashboard/settings/profile');
+    });
+
+    it('should allow relative paths with query strings', () => {
+      const result = AuthUtils.sanitizeReturnTo('/search?q=test&page=1', allowedOrigins);
+      expect(result).toBe('/search?q=test&page=1');
+    });
+
+    it('should reject protocol-relative URLs (//)', () => {
+      const result = AuthUtils.sanitizeReturnTo('//evil.com/path', allowedOrigins);
+      expect(result).toBeNull();
+    });
+
+    it('should reject encoded protocol-relative URLs', () => {
+      const result = AuthUtils.sanitizeReturnTo('/%2F/evil.com', allowedOrigins);
+      expect(result).toBeNull();
+    });
   });
 });
 

@@ -251,6 +251,18 @@ export class AuthUtils {
    */
   static sanitizeReturnTo(returnTo: string, allowedOrigins: string[]): string | null {
     try {
+      // Handle relative paths (e.g., "/protected", "/dashboard/settings")
+      // These are inherently same-origin and safe
+      if (returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+        // Ensure it's a clean path without protocol injection
+        // Reject paths that could be manipulated (e.g., contain backslashes or encoded characters that resolve to //)
+        const cleanPath = decodeURIComponent(returnTo);
+        if (cleanPath.startsWith('//') || cleanPath.includes('\\')) {
+          return null;
+        }
+        return returnTo;
+      }
+
       const url = new URL(returnTo);
 
       // Only allow same-origin URLs or explicitly allowed origins

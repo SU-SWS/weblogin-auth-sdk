@@ -198,7 +198,7 @@ describe('DefaultLogger', () => {
       const sensitiveData = {
         password: 'secret123',
         token: 'bearer-token',
-        cookie: 'session-cookie',
+        cookieValue: 'session-cookie-encrypted-content',
         normalData: 'not-secret'
       };
 
@@ -209,8 +209,35 @@ describe('DefaultLogger', () => {
 
       expect(logData.password).toBe('[REDACTED]');
       expect(logData.token).toBe('[REDACTED]');
-      expect(logData.cookie).toBe('[REDACTED]');
+      expect(logData.cookieValue).toBe('[REDACTED]');
       expect(logData.normalData).toBe('not-secret');
+    });
+
+    it('should NOT redact cookie metadata (names, sizes, options)', () => {
+      logger = new DefaultLogger();
+      const cookieMetadata = {
+        cookieName: 'weblogin-auth-session',
+        mainCookieName: 'weblogin-auth-session',
+        jsCookieName: 'weblogin-auth-session-session',
+        cookieSize: 1234,
+        mainCookie: 'weblogin-auth-session',
+        jsCookie: 'weblogin-auth-session-session',
+        cookieOptions: { httpOnly: true, secure: true }
+      };
+
+      logger.info('test message', cookieMetadata);
+
+      const logCall = consoleLogSpy.mock.calls[0][0];
+      const logData = JSON.parse(logCall);
+
+      // Cookie metadata should NOT be redacted
+      expect(logData.cookieName).toBe('weblogin-auth-session');
+      expect(logData.mainCookieName).toBe('weblogin-auth-session');
+      expect(logData.jsCookieName).toBe('weblogin-auth-session-session');
+      expect(logData.cookieSize).toBe(1234);
+      expect(logData.mainCookie).toBe('weblogin-auth-session');
+      expect(logData.jsCookie).toBe('weblogin-auth-session-session');
+      expect(logData.cookieOptions).toEqual({ httpOnly: true, secure: true });
     });
 
     it('should redact certificate data with hash', () => {

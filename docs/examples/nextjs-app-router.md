@@ -47,21 +47,23 @@ export const auth = createWebLoginNext({
 
 ## Usage Patterns
 
-The Weblogin Auth SDK provides two ways to access session data in Next.js:
+The Weblogin Auth SDK provides flexible ways to access session data in Next.js:
 
-### 1. Server Components & Server Actions
-In Server Components and Server Actions, call session methods without parameters:
+### 1. Server Components & Server Actions (Recommended)
+In Server Components and Server Actions, call session methods without parameters. The SDK automatically uses `cookies()` from `next/headers` internally:
 
 ```typescript
-// Server Component
+// Server Component - just call without arguments
 export default async function MyPage() {
-  const session = await auth.getSession(); // No parameters
-  const user = await auth.getUser();       // No parameters
-  const isAuth = await auth.isAuthenticated(); // No parameters
+  const session = await auth.getSession(); // Automatically uses cookies()
+  const user = await auth.getUser();       // Automatically uses cookies()
+  const isAuth = await auth.isAuthenticated(); // Automatically uses cookies()
   
   // Use session data...
 }
 ```
+
+This works even in deeply nested Server Components - you don't need to pass the Request object down through props.
 
 ### 2. API Routes & Middleware  
 In API routes and middleware, always pass the `Request` object:
@@ -81,6 +83,27 @@ export function middleware(request: NextRequest) {
   const session = await auth.getSession(request); // Pass request
   // ...
 }
+```
+
+### 3. Explicit Cookies (Edge Cases)
+If you need to pass cookies explicitly (e.g., when the automatic `cookies()` resolution doesn't work in your context), you can pass the cookies object directly:
+
+```typescript
+import { cookies } from 'next/headers';
+
+// Pass cookies explicitly
+export default async function MyComponent() {
+  const cookieStore = await cookies();
+  
+  const session = await auth.getSession(cookieStore);
+  const user = await auth.getUser(cookieStore);
+  const isAuth = await auth.isAuthenticated(cookieStore);
+  
+  // Use session data...
+}
+
+// Also works with Promise<cookies> (Next.js 15+)
+const session = await auth.getSession(cookies()); // No await needed - SDK handles it
 ```
 
 The SDK automatically handles the different contexts and cookie access patterns.

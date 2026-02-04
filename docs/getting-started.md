@@ -89,6 +89,8 @@ import { auth } from '@/utils/authInstance';
 import { redirect } from 'next/navigation';
 
 export default async function Dashboard() {
+  // In Server Components, simply call getUser() without arguments
+  // The SDK automatically uses Next.js cookies() internally
   const user = await auth.getUser();
 
   if (!user) {

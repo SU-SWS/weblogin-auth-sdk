@@ -20,6 +20,17 @@ jest.mock('next/navigation', () => ({
   redirect: jest.fn()
 }));
 
+// Mock edge-session module
+const mockEdgeSessionReader = {
+  getSessionFromRequest: jest.fn(),
+  decryptSession: jest.fn()
+};
+
+jest.mock('../src/edge-session', () => ({
+  EdgeSessionReader: jest.fn().mockImplementation(() => mockEdgeSessionReader),
+  createEdgeSessionReader: jest.fn().mockReturnValue(mockEdgeSessionReader)
+}));
+
 // Mock SAMLProvider
 jest.mock('../src/saml');
 const MockedSAMLProvider = SAMLProvider as jest.MockedClass<typeof SAMLProvider>;
@@ -407,15 +418,45 @@ describe('WebLoginNext', () => {
       // In the test environment, it may return mock data
       expect(result).toBeDefined();
     });
+
+    it('should accept cookies object for deeply nested server components', async () => {
+      // Mock cookies object similar to what Next.js cookies() returns
+      const mockCookies = {
+        get: jest.fn().mockReturnValue(undefined), // No session cookie
+        set: jest.fn(),
+        delete: jest.fn(),
+      };
+
+      // Call getSession with cookies object - should not throw a type error
+      const result = await webLoginNext.getSession(mockCookies);
+
+      // Should return null when no session exists (cookies.get returns undefined)
+      expect(result).toBeNull();
+    });
+
+    it('should accept Promise<cookies> for Next.js 15+ async cookies()', async () => {
+      // Mock async cookies() result (Next.js 15+)
+      const mockCookies = {
+        get: jest.fn().mockReturnValue(undefined), // No session cookie
+        set: jest.fn(),
+        delete: jest.fn(),
+      };
+
+      // Call getSession with Promise<cookies> - should not throw a type error
+      const result = await webLoginNext.getSession(Promise.resolve(mockCookies));
+
+      // Should return null when no session exists
+      expect(result).toBeNull();
+    });
   });
 
   describe('getUser', () => {
     it('should delegate to session manager when no request provided', async () => {
-      mockSessionManager.getUser.mockResolvedValue(testUser);
+      mockSessionManager.getSession.mockResolvedValue(testSession);
 
       const result = await webLoginNext.getUser();
 
-      expect(mockSessionManager.getUser).toHaveBeenCalled();
+      expect(mockSessionManager.getSession).toHaveBeenCalled();
       expect(result).toBe(testUser);
     });
 
@@ -431,11 +472,11 @@ describe('WebLoginNext', () => {
 
   describe('isAuthenticated', () => {
     it('should delegate to session manager when no request provided', async () => {
-      mockSessionManager.isAuthenticated.mockResolvedValue(true);
+      mockSessionManager.getSession.mockResolvedValue(testSession);
 
       const result = await webLoginNext.isAuthenticated();
 
-      expect(mockSessionManager.isAuthenticated).toHaveBeenCalled();
+      expect(mockSessionManager.getSession).toHaveBeenCalled();
       expect(result).toBe(true);
     });
 

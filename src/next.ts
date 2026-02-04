@@ -35,6 +35,18 @@ import {
 import { DefaultLogger } from './logger.js';
 
 /**
+ * Type for Next.js cookies object from next/headers
+ *
+ * This interface represents the cookies object returned by `cookies()` from next/headers.
+ * It provides methods to get, set, and delete cookies in a Next.js App Router context.
+ */
+export interface NextCookies {
+  get: (name: string) => { name: string; value: string } | undefined;
+  set?: (name: string, value: string, options?: CookieOptions) => void;
+  delete?: (name: string) => void;
+}
+
+/**
  * Create a cookie store adapter for Next.js
  *
  * Adapts the Next.js cookies() API to the generic CookieStore interface.
@@ -374,18 +386,18 @@ export class WebLoginNext {
   /**
    * Get current session
    *
-   * @param request - Optional Request object for API routes and middleware
+   * @param requestOrCookies - Optional Request object, Next.js cookies object, or cookies() Promise
    * @returns Promise resolving to current session or null if not authenticated
    *
    * @example
    * ```typescript
-   * // In Server Component
+   * // In Server Component (no argument - uses next/headers cookies automatically)
    * const session = await auth.getSession();
    * if (session) {
    *   console.log('User:', session.user.name);
    * }
    *
-   * // In API route
+   * // In API route with Request
    * export async function GET(request: Request) {
    *   const session = await auth.getSession(request);
    *   if (!session) {
@@ -393,47 +405,58 @@ export class WebLoginNext {
    *   }
    *   return Response.json({ user: session.user });
    * }
+   *
+   * // In deeply nested Server Component with cookies
+   * import { cookies } from 'next/headers';
+   * const session = await auth.getSession(await cookies());
    * ```
    */
-  async getSession(request?: Request): Promise<Session | null> {
+  async getSession(requestOrCookies?: Request | NextCookies | Promise<NextCookies>): Promise<Session | null> {
     this.assertServerEnvironment('getSession');
 
-    if (request) {
-      // For API routes, middleware, etc. - use the provided Request object
-      return getSessionFromNextRequest(request, this.sessionConfig.secret, this.sessionConfig.name);
-    } else {
+    if (!requestOrCookies) {
       // For Server Components, Server Actions - use Next.js cookies()
       const sessionManager = await this.getSessionManager();
       return sessionManager.getSession();
+    }
+
+    // Handle Promise<NextCookies> (from async cookies() in Next.js 15+)
+    const resolved = await Promise.resolve(requestOrCookies);
+
+    if (resolved instanceof Request) {
+      // For API routes, middleware, etc. - use the provided Request object
+      return getSessionFromNextRequest(resolved, this.sessionConfig.secret, this.sessionConfig.name);
+    } else {
+      // For Server Components with explicit cookies object
+      return getSessionFromNextCookies(resolved, this.sessionConfig.secret, this.sessionConfig.name);
     }
   }
 
   /**
    * Get current user
    *
-   * @param request - Optional Request object for API routes and middleware
+   * @param requestOrCookies - Optional Request object, Next.js cookies object, or cookies() Promise
    * @returns Promise resolving to current user or null if not authenticated
    *
    * @example
    * ```typescript
-   * // In Server Component
+   * // In Server Component (no argument - uses next/headers cookies automatically)
    * const user = await auth.getUser();
    * if (!user) {
    *   redirect('/login');
    * }
    *
-   * // In API route
+   * // In API route with Request
    * const user = await auth.getUser(request);
+   *
+   * // In deeply nested Server Component with cookies
+   * import { cookies } from 'next/headers';
+   * const user = await auth.getUser(await cookies());
    * ```
    */
-  async getUser(request?: Request): Promise<User | null> {
-    if (request) {
-      const session = await this.getSession(request);
-      return session?.user || null;
-    }
-
-    const sessionManager = await this.getSessionManager();
-    return sessionManager.getUser();
+  async getUser(requestOrCookies?: Request | NextCookies | Promise<NextCookies>): Promise<User | null> {
+    const session = await this.getSession(requestOrCookies);
+    return session?.user || null;
   }
 
   /**
@@ -475,29 +498,34 @@ export class WebLoginNext {
   /**
    * Check if user is authenticated
    *
-   * @param request - Optional Request object for API routes and middleware
+   * @param requestOrCookies - Optional Request object, Next.js cookies object, or cookies() Promise
    * @returns Promise resolving to true if user is authenticated
    *
    * @example
    * ```typescript
-   * // In route handler
+   * // In Server Component (no argument - uses next/headers cookies automatically)
+   * if (!(await auth.isAuthenticated())) {
+   *   redirect('/login');
+   * }
+   *
+   * // In route handler with Request
    * export async function GET(request: Request) {
    *   if (!(await auth.isAuthenticated(request))) {
    *     return Response.redirect('/login');
    *   }
-   *
    *   return Response.json({ message: 'Protected data' });
+   * }
+   *
+   * // In deeply nested Server Component with cookies
+   * import { cookies } from 'next/headers';
+   * if (!(await auth.isAuthenticated(await cookies()))) {
+   *   redirect('/login');
    * }
    * ```
    */
-  async isAuthenticated(request?: Request): Promise<boolean> {
-    if (request) {
-      const session = await this.getSession(request);
-      return !!session;
-    }
-
-    const sessionManager = await this.getSessionManager();
-    return sessionManager.isAuthenticated();
+  async isAuthenticated(requestOrCookies?: Request | NextCookies | Promise<NextCookies>): Promise<boolean> {
+    const session = await this.getSession(requestOrCookies);
+    return !!session;
   }
 
   /**

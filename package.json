@@ -78,7 +78,7 @@
     "url": "git+https://github.com/SU-SWS/weblogin-auth-sdk.git"
   },
   "author": "Stanford Web Services",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/SU-SWS/weblogin-auth-sdk/issues"
   },

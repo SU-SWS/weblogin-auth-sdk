@@ -39,6 +39,73 @@ describe('SAMLProvider', () => {
       expect(provider).toBeInstanceOf(SAMLProvider);
     });
 
+    describe('optional encryption', () => {
+      const encryptionEnv = ['WEBLOGIN_AUTH_SAML_DECRYPTION_KEY', 'WEBLOGIN_AUTH_SAML_DECRYPTION_CERT'];
+      const saved: Record<string, string | undefined> = {};
+      const withoutEncryption = { ...validConfig } as Partial<SamlConfig>;
+      delete withoutEncryption.decryptionPvk;
+      delete withoutEncryption.decryptionCert;
+
+      beforeEach(() => {
+        for (const key of encryptionEnv) {
+          saved[key] = process.env[key];
+          delete process.env[key];
+        }
+      });
+
+      afterEach(() => {
+        for (const key of encryptionEnv) {
+          if (saved[key] === undefined) delete process.env[key];
+          else process.env[key] = saved[key];
+        }
+      });
+
+      test('should create SAMLProvider without decryption key or cert', () => {
+        const provider = new SAMLProvider(withoutEncryption as SamlConfig, logger);
+        // @ts-expect-error accessing private property for testing
+        expect(provider.provider.options.decryptionPvk).toBeUndefined();
+      });
+
+      test('should omit the encryption KeyDescriptor from metadata when encryption is not configured', () => {
+        const provider = new SAMLProvider(withoutEncryption as SamlConfig, logger);
+
+        const metadata = provider.getMetadata();
+
+        expect(metadata).toContain('<KeyDescriptor use="signing">');
+        expect(metadata).not.toContain('use="encryption"');
+      });
+
+      test('should include the encryption KeyDescriptor in metadata when encryption is configured', () => {
+        const provider = new SAMLProvider(validConfig, logger);
+
+        const metadata = provider.getMetadata();
+
+        expect(metadata).toContain('<KeyDescriptor use="encryption">');
+      });
+
+      test('should throw when decryptionPvk is set without decryptionCert', () => {
+        expect(() => {
+          new SAMLProvider({ ...withoutEncryption, decryptionPvk: 'test-decryption-key' } as SamlConfig, logger);
+        }).toThrow('decryptionPvk is set but decryptionCert is not');
+      });
+
+      test('should throw when decryptionCert is set without decryptionPvk', () => {
+        expect(() => {
+          new SAMLProvider({ ...withoutEncryption, decryptionCert: 'test-decryption-cert' } as SamlConfig, logger);
+        }).toThrow('decryptionCert is set but decryptionPvk is not');
+      });
+
+      test('should accept the pair from environment variables', () => {
+        process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY = 'env-decryption-key';
+        process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT = 'env-decryption-cert';
+
+        const provider = new SAMLProvider(withoutEncryption as SamlConfig, logger);
+
+        // @ts-expect-error accessing private property for testing
+        expect(provider.provider.options.decryptionPvk).toContain('env-decryption-key');
+      });
+    });
+
     test('should throw AuthError for missing required config when no env vars', () => {
       const originalIssuer = process.env.WEBLOGIN_AUTH_ISSUER;
       const originalCert = process.env.WEBLOGIN_AUTH_SAML_CERT;

@@ -297,6 +297,14 @@ export interface OptionalSamlConfig {
   signMetadata?: boolean;
 
   /**
+   * Number of days generated SP metadata stays valid. Written to the
+   * EntityDescriptor's `validUntil` attribute. Once it passes, SPDB treats the
+   * metadata as expired and the SP configuration has to be renewed.
+   * @default 365
+   */
+  metadataValidityDays?: number;
+
+  /**
    * Validate InResponseTo
    * @default 'never'
    */

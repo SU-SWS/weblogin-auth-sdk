@@ -214,6 +214,7 @@ export class SAMLProvider {
       generateUniqueId: config.generateUniqueId,
       scoping: config.scoping,
       signMetadata: config.signMetadata,
+      metadataValidityDays: config.metadataValidityDays ?? 365,
       validateInResponseTo: config.validateInResponseTo,
       requestIdExpirationPeriodMs: config.requestIdExpirationPeriodMs,
       cacheProvider: config.cacheProvider,
@@ -240,6 +241,7 @@ export class SAMLProvider {
 
     // Validate required configuration
     this.validateConfig();
+    this.validateMetadataValidity();
 
     // Construct callback URL
     const callbackUrl = new URL(this.config.returnToPath, this.config.returnToOrigin).toString();
@@ -311,6 +313,23 @@ export class SAMLProvider {
       returnToOrigin: this.config.returnToOrigin,
       callbackUrl: callbackUrl,
     });
+  }
+
+  /**
+   * Validate metadataValidityDays
+   *
+   * @throws {AuthError} If it is not a positive, finite number of days
+   * @private
+   */
+  private validateMetadataValidity(): void {
+    const days = this.config.metadataValidityDays;
+    if (typeof days !== 'number' || !Number.isFinite(days) || days <= 0) {
+      throw new AuthError(
+        `metadataValidityDays must be a positive number of days, got ${String(days)}`,
+        'INVALID_CONFIG',
+        400
+      );
+    }
   }
 
   /**
@@ -639,9 +658,8 @@ export class SAMLProvider {
       publicCerts: signingCert ?? null,
     });
 
-    // Add validUntil attribute to EntityDescriptor (valid for 1 year)
-    const validUntil = new Date();
-    validUntil.setFullYear(validUntil.getFullYear() + 1);
+    // Add validUntil attribute to EntityDescriptor (default: 365 days)
+    const validUntil = new Date(Date.now() + this.config.metadataValidityDays * 24 * 60 * 60 * 1000);
 
     metadata = metadata.replace(
       '<EntityDescriptor',

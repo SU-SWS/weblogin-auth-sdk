@@ -82,18 +82,21 @@ export interface RequiredSamlConfig {
   cert: string;
 
   /**
-   * Private key for SAML decryption (required)
-   * Used to decrypt encrypted SAML assertions from the IdP
+   * Private key for SAML decryption (optional)
+   * Used to decrypt encrypted SAML assertions from the IdP. Set together with
+   * `decryptionCert` to receive encrypted assertions; omit both to receive
+   * signed, unencrypted assertions.
    * @default process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY
    */
-  decryptionPvk: string;
+  decryptionPvk?: string;
 
   /**
-   * Public certificate for SAML decryption (PEM format) (required)
-   * Used for generating Service Provider metadata - share this with the IdP
+   * Public certificate for SAML decryption (PEM format) (optional)
+   * Published in the Service Provider metadata so the IdP can encrypt
+   * assertions to it. Must be set together with `decryptionPvk`.
    * @default process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT
    */
-  decryptionCert: string;
+  decryptionCert?: string;
 }
 
 /**

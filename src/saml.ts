@@ -318,15 +318,30 @@ export class SAMLProvider {
    * @private
    */
   private validateConfig(): void {
-    const required = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin', 'privateKey', 'cert', 'decryptionPvk', 'decryptionCert'];
-    const missing = required.filter(key => {
-      const value = this.config[key as keyof SamlConfig];
+    const isBlank = (key: keyof SamlConfig) => {
+      const value = this.config[key];
       return !value || (typeof value === 'string' && value.trim() === '');
-    });
+    };
+
+    const required: (keyof SamlConfig)[] = ['issuer', 'idpCert', 'entryPoint', 'returnToOrigin', 'privateKey', 'cert'];
+    const missing = required.filter(isBlank);
 
     if (missing.length > 0) {
       throw new AuthError(
         `Missing required SAML configuration: ${missing.join(', ')}`,
+        'INVALID_CONFIG',
+        400
+      );
+    }
+
+    // Encryption is optional, but the key and certificate only work as a pair:
+    // a certificate without its key would be published in metadata, and the
+    // IdP would encrypt assertions this SP can't decrypt.
+    if (isBlank('decryptionPvk') !== isBlank('decryptionCert')) {
+      const present = isBlank('decryptionPvk') ? 'decryptionCert' : 'decryptionPvk';
+      const absent = present === 'decryptionPvk' ? 'decryptionCert' : 'decryptionPvk';
+      throw new AuthError(
+        `${present} is set but ${absent} is not. Set both to receive encrypted assertions, or neither to disable encryption.`,
         'INVALID_CONFIG',
         400
       );

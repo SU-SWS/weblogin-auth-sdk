@@ -16,7 +16,12 @@
  * @module saml
  */
 
-import { SAML, SamlConfig as NodeSamlConfig } from '@node-saml/node-saml';
+import {
+  SAML,
+  SamlConfig as NodeSamlConfig,
+  generateServiceProviderMetadata,
+} from '@node-saml/node-saml';
+import { SignedXml } from 'xml-crypto';
 import {
   SamlConfig,
   SAMLProfile,
@@ -607,19 +612,72 @@ export class SAMLProvider {
       signingCert = this.config.cert;
     }
 
-    let metadata = this.provider.generateServiceProviderMetadata(decryptionCert ?? null, signingCert ?? null);
+    const options = this.provider.options;
+
+    // Build the metadata unsigned. validUntil has to be on the EntityDescriptor
+    // before it is signed: the signature covers the whole element, so adding
+    // the attribute afterwards would invalidate it.
+    let metadata = generateServiceProviderMetadata({
+      ...options,
+      signMetadata: false,
+      decryptionCert: decryptionCert ?? null,
+      publicCerts: signingCert ?? null,
+    });
 
     // Add validUntil attribute to EntityDescriptor (valid for 1 year)
     const validUntil = new Date();
     validUntil.setFullYear(validUntil.getFullYear() + 1);
 
-    // Simple string replacement to inject validUntil
     metadata = metadata.replace(
       '<EntityDescriptor',
       `<EntityDescriptor validUntil="${validUntil.toISOString()}"`
     );
 
+    if (options.signMetadata === true && options.privateKey) {
+      metadata = SAMLProvider.signMetadataXml(metadata, options);
+    }
+
     return metadata;
+  }
+
+  /**
+   * Sign SP metadata with an enveloped signature on the EntityDescriptor.
+   *
+   * Mirrors how node-saml signs metadata (same algorithms, transforms,
+   * canonicalization and placement), so output matches `signMetadata: true`
+   * apart from also covering validUntil.
+   */
+  private static signMetadataXml(xml: string, options: SAML['options']): string {
+    const signatureAlgorithms: Record<string, string> = {
+      sha256: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256',
+      sha512: 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha512',
+      sha1: 'http://www.w3.org/2000/09/xmldsig#rsa-sha1',
+    };
+    const digestAlgorithms: Record<string, string> = {
+      sha256: 'http://www.w3.org/2001/04/xmlenc#sha256',
+      sha512: 'http://www.w3.org/2001/04/xmlenc#sha512',
+      sha1: 'http://www.w3.org/2000/09/xmldsig#sha1',
+    };
+    const entityDescriptorXpath =
+      '//*[local-name(.)="EntityDescriptor" and namespace-uri(.)="urn:oasis:names:tc:SAML:2.0:metadata"]';
+
+    const sig = new SignedXml({
+      privateKey: options.privateKey as string,
+      signatureAlgorithm: signatureAlgorithms[options.signatureAlgorithm ?? 'sha1'] ?? signatureAlgorithms.sha1,
+      canonicalizationAlgorithm: 'http://www.w3.org/2001/10/xml-exc-c14n#',
+    });
+    sig.addReference({
+      xpath: entityDescriptorXpath,
+      transforms: options.xmlSignatureTransforms ?? [
+        'http://www.w3.org/2000/09/xmldsig#enveloped-signature',
+        'http://www.w3.org/2001/10/xml-exc-c14n#',
+      ],
+      digestAlgorithm: digestAlgorithms[options.digestAlgorithm ?? 'sha1'] ?? digestAlgorithms.sha1,
+    });
+    sig.computeSignature(xml, {
+      location: { reference: entityDescriptorXpath, action: 'prepend' },
+    });
+    return sig.getSignedXml();
   }
 
   /**

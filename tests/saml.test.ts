@@ -2,6 +2,10 @@
 import { SAMLProvider } from '../src/saml';
 import { AuthError, MFA } from '../src/types';
 import { DefaultLogger } from '../src/logger';
+import { generateKeyPairSync } from 'crypto';
+import { SignedXml } from 'xml-crypto';
+import { DOMParser } from '@xmldom/xmldom';
+import * as xpath from 'xpath';
 import type { SAMLProfile, SamlConfig, AuthenticateOptions } from '../src/types';
 
 // Mock Web API Request
@@ -668,129 +672,137 @@ CLEAN_ME_2
   });
 
   describe('getMetadata', () => {
-    test('should generate metadata with validUntil attribute', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor entityID="test">...</EntityDescriptor>');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
+    // A real key pair, so signatures can be computed and verified. The
+    // certificates in metadata are only embedded as text, so placeholder
+    // base64 values are enough there.
+    const { privateKey: signingKey, publicKey: verifyKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+    });
+    const metadataConfig: SamlConfig = {
+      ...validConfig,
+      privateKey: signingKey,
+      cert: 'Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=',
+      decryptionCert: 'Y29uZmlndXJlZC1kZWNyeXB0aW9uLWNlcnQ=',
+    };
+
+    const verify = (xml: string): boolean => {
+      const doc = new DOMParser().parseFromString(xml, 'text/xml');
+      const signature = xpath.select1(
+        "/*[local-name()='EntityDescriptor']/*[local-name()='Signature' and namespace-uri()='http://www.w3.org/2000/09/xmldsig#']",
+        doc as unknown as Node
+      ) as Node | undefined;
+      if (!signature) throw new Error('metadata has no signature');
+      const sig = new SignedXml({ publicCert: verifyKey });
+      sig.loadSignature(signature);
+      return sig.checkSignature(xml);
+    };
+
+    const certsByUse = (xml: string): Record<string, string> => {
+      const found: Record<string, string> = {};
+      for (const [, use, cert] of xml.matchAll(
+        /<KeyDescriptor use="(\w+)">[\s\S]*?<ds:X509Certificate>([^<]+)</g
+      )) {
+        found[use] = cert.replace(/\s+/g, '');
+      }
+      return found;
+    };
+
+    test('should add validUntil one year out to EntityDescriptor', () => {
+      const provider = new SAMLProvider(metadataConfig, logger);
+
+      const metadata = provider.getMetadata();
+
+      const match = metadata.match(/<EntityDescriptor validUntil="([^"]+)"/);
+      expect(match).not.toBeNull();
+      const expected = new Date();
+      expected.setFullYear(expected.getFullYear() + 1);
+      const diffMs = Math.abs(new Date(match![1]).getTime() - expected.getTime());
+      expect(diffMs).toBeLessThan(60_000);
+    });
+
+    test('should not sign metadata when signMetadata is not enabled', () => {
+      const provider = new SAMLProvider(metadataConfig, logger);
 
       const metadata = provider.getMetadata();
 
       expect(metadata).toContain('validUntil="');
-      expect(metadata).toMatch(/validUntil="\d{4}-\d{2}-\d{2}T/);
+      expect(metadata).not.toContain('<Signature');
     });
 
-    test('should use decryption cert from config', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      provider.getMetadata();
-
-      // Certs are now in PEM format
-      expect(mockGenerateMetadata).toHaveBeenCalledWith(
-        expect.stringContaining('test-decryption-cert'),
-        expect.stringContaining('test-public-cert')
-      );
-    });
-
-    test('should use decryption cert from config when provided', () => {
-      const configWithDecryption = {
-        ...validConfig,
-        decryptionCert: 'custom-decryption-cert',
-      };
-      const provider = new SAMLProvider(configWithDecryption, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      provider.getMetadata();
-
-      // Certs are now in PEM format
-      expect(mockGenerateMetadata).toHaveBeenCalledWith(
-        expect.stringContaining('custom-decryption-cert'),
-        expect.stringContaining('test-public-cert')
-      );
-    });
-
-    test('should use decryption cert from argument when provided', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      provider.getMetadata('arg-decryption-cert');
-
-      // Argument certs are passed as-is, config certs are in PEM format
-      expect(mockGenerateMetadata).toHaveBeenCalledWith(
-        'arg-decryption-cert',
-        expect.stringContaining('test-public-cert')
-      );
-    });
-
-    test('should prioritize argument certs over configured certs', () => {
-      const configWithCerts = {
-        ...validConfig,
-        cert: 'configured-signing-cert',
-        decryptionCert: 'configured-decryption-cert',
-      };
-      const provider = new SAMLProvider(configWithCerts, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      provider.getMetadata('arg-decryption-cert', 'arg-signing-cert');
-
-      expect(mockGenerateMetadata).toHaveBeenCalledWith('arg-decryption-cert', 'arg-signing-cert');
-    });
-
-    test('should use configured certs when no arguments provided', () => {
-      const configWithCerts = {
-        ...validConfig,
-        cert: 'configured-signing-cert',
-        decryptionCert: 'configured-decryption-cert',
-      };
-      const provider = new SAMLProvider(configWithCerts, logger);
-      const mockGenerateMetadata = jest.fn().mockReturnValue('<EntityDescriptor />');
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
-
-      provider.getMetadata();
-
-      // Certs are now in PEM format
-      expect(mockGenerateMetadata).toHaveBeenCalledWith(
-        expect.stringContaining('configured-decryption-cert'),
-        expect.stringContaining('configured-signing-cert')
-      );
-    });
-
-    test('should always include AssertionConsumerService elements (required by SAML 2.0 schema)', () => {
-      const provider = new SAMLProvider(validConfig, logger);
-      const metadataWithAcs = `<EntityDescriptor entityID="test">
-        <SPSSODescriptor>
-          <KeyDescriptor use="signing"/>
-          <AssertionConsumerService index="1" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://example.com/acs"/>
-          <AssertionConsumerService index="2" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://example.com/acs2"/>
-        </SPSSODescriptor>
-      </EntityDescriptor>`;
-      const mockGenerateMetadata = jest.fn().mockReturnValue(metadataWithAcs);
-      (provider as any).provider = {
-        generateServiceProviderMetadata: mockGenerateMetadata,
-      };
+    test('should produce a valid signature that covers validUntil when signMetadata is true', () => {
+      const provider = new SAMLProvider({ ...metadataConfig, signMetadata: true }, logger);
 
       const metadata = provider.getMetadata();
 
-      // SAML 2.0 schema requires AssertionConsumerService elements
-      expect(metadata).toContain('AssertionConsumerService');
-      expect(metadata).toContain('KeyDescriptor');
-      expect(metadata).toContain('SPSSODescriptor');
+      expect(metadata).toMatch(/<EntityDescriptor validUntil="[^"]+"/);
+      expect(verify(metadata)).toBe(true);
+
+      // Changing validUntil after signing must break the signature
+      const tampered = metadata.replace(/validUntil="[^"]+"/, 'validUntil="2099-01-01T00:00:00.000Z"');
+      expect(verify(tampered)).toBe(false);
+    });
+
+    test('should sign with the configured signature and digest algorithms', () => {
+      const provider = new SAMLProvider(
+        { ...metadataConfig, signMetadata: true, signatureAlgorithm: 'sha512', digestAlgorithm: 'sha256' },
+        logger
+      );
+
+      const metadata = provider.getMetadata();
+
+      expect(metadata).toContain('<SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha512"/>');
+      expect(metadata).toContain('<DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>');
+      expect(verify(metadata)).toBe(true);
+    });
+
+    test('should place the signature as the first child of EntityDescriptor', () => {
+      const provider = new SAMLProvider({ ...metadataConfig, signMetadata: true }, logger);
+
+      const metadata = provider.getMetadata();
+
+      expect(metadata).toMatch(/<EntityDescriptor [^>]*><Signature /);
+    });
+
+    test('should use configured certs when no arguments provided', () => {
+      const provider = new SAMLProvider(metadataConfig, logger);
+
+      const certs = certsByUse(provider.getMetadata());
+
+      expect(certs.signing).toBe('Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=');
+      expect(certs.encryption).toBe('Y29uZmlndXJlZC1kZWNyeXB0aW9uLWNlcnQ=');
+    });
+
+    test('should use decryption cert from argument when provided', () => {
+      const provider = new SAMLProvider(metadataConfig, logger);
+
+      const certs = certsByUse(provider.getMetadata('YXJnLWRlY3J5cHRpb24tY2VydA=='));
+
+      expect(certs.encryption).toBe('YXJnLWRlY3J5cHRpb24tY2VydA==');
+      expect(certs.signing).toBe('Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=');
+    });
+
+    test('should prioritize argument certs over configured certs', () => {
+      const provider = new SAMLProvider(metadataConfig, logger);
+
+      const certs = certsByUse(
+        provider.getMetadata('YXJnLWRlY3J5cHRpb24tY2VydA==', 'YXJnLXNpZ25pbmctY2VydA==')
+      );
+
+      expect(certs.encryption).toBe('YXJnLWRlY3J5cHRpb24tY2VydA==');
+      expect(certs.signing).toBe('YXJnLXNpZ25pbmctY2VydA==');
+    });
+
+    test('should always include AssertionConsumerService elements (required by SAML 2.0 schema)', () => {
+      const provider = new SAMLProvider({ ...metadataConfig, signMetadata: true }, logger);
+
+      const metadata = provider.getMetadata();
+
+      expect(metadata).toContain('<SPSSODescriptor');
+      expect(metadata).toContain(
+        '<AssertionConsumerService index="1" isDefault="true" Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://app.example.com/auth/callback"/>'
+      );
     });
   });
 });

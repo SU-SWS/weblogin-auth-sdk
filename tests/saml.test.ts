@@ -722,6 +722,50 @@ CLEAN_ME_2
       expect(diffMs).toBeLessThan(60_000);
     });
 
+    const validUntilOf = (xml: string): Date => {
+      const match = xml.match(/<EntityDescriptor validUntil="([^"]+)"/);
+      if (!match) throw new Error('metadata has no validUntil');
+      return new Date(match[1]);
+    };
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    test('should default validUntil to 365 days', () => {
+      const provider = new SAMLProvider(metadataConfig, logger);
+
+      const offset = validUntilOf(provider.getMetadata()).getTime() - Date.now();
+
+      expect(Math.abs(offset - 365 * DAY_MS)).toBeLessThan(60_000);
+    });
+
+    test('should honor metadataValidityDays', () => {
+      const provider = new SAMLProvider({ ...metadataConfig, metadataValidityDays: 30 }, logger);
+
+      const offset = validUntilOf(provider.getMetadata()).getTime() - Date.now();
+
+      expect(Math.abs(offset - 30 * DAY_MS)).toBeLessThan(60_000);
+    });
+
+    test('should cover a custom validUntil with the metadata signature', () => {
+      const provider = new SAMLProvider(
+        { ...metadataConfig, signMetadata: true, metadataValidityDays: 90 },
+        logger
+      );
+
+      const metadata = provider.getMetadata();
+
+      expect(Math.abs(validUntilOf(metadata).getTime() - Date.now() - 90 * DAY_MS)).toBeLessThan(60_000);
+      expect(verify(metadata)).toBe(true);
+    });
+
+    test.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, '365' as unknown as number])(
+      'should reject metadataValidityDays of %p',
+      (days) => {
+        expect(() => new SAMLProvider({ ...metadataConfig, metadataValidityDays: days }, logger)).toThrow(
+          'metadataValidityDays must be a positive number of days'
+        );
+      }
+    );
+
     test('should not sign metadata when signMetadata is not enabled', () => {
       const provider = new SAMLProvider(metadataConfig, logger);
 

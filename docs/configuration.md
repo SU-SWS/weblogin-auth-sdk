@@ -146,6 +146,7 @@ Available presets:
 | `skipRequestCompression` | `boolean` | `undefined` | Skip Request Compression |
 | `authnRequestBinding` | `string` | `'HTTP-Redirect'` | Authentication Request Binding |
 | `signMetadata` | `boolean` | `undefined` | Sign Metadata |
+| `metadataValidityDays` | `number` | `365` | Days generated metadata stays valid (the `validUntil` attribute). SPDB disables the SP configuration once it passes, so plan to regenerate and resubmit metadata before then |
 | `validateInResponseTo` | `string` | `'never'` | Validate InResponseTo ('always', 'never', 'ifPresent') |
 | `requestIdExpirationPeriodMs` | `number` | `28800000` | Request ID Expiration Period in milliseconds |
 | `idpIssuer` | `string` | `undefined` | IDP Issuer |

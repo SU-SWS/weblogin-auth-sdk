@@ -626,7 +626,7 @@ These will be available in the `user` object returned by `authenticate` or `getS
 
 The `getMetadata` method includes several enhancements:
 
-1. **validUntil attribute**: Automatically injects a `validUntil` attribute (set to 1 year from generation) into the `EntityDescriptor`, as recommended by Stanford's SPDB guidelines.
+1. **validUntil attribute**: Automatically injects a `validUntil` attribute into the `EntityDescriptor`, as recommended by Stanford's SPDB guidelines. It defaults to 365 days from generation; set `metadataValidityDays` to change it. With `signMetadata: true`, the attribute is covered by the signature. When `validUntil` passes, SPDB disables the SP configuration, so regenerate and resubmit metadata before then.
 
 2. **AssertionConsumerService**: Always includes ACS endpoints as required by SAML 2.0 schema. The URL can be your canonical production URL - when `skipRequestAcsUrl: true` (default), the IdP uses the URL from signed AuthnRequests instead of validating against metadata.
 

@@ -28,7 +28,7 @@ Designed for serverless, stateless environments with security-first defaults and
 
 📖 **[API Reference](./docs/api-reference.md)** - Complete API documentation with examples
 
-🔄 **[Migration Guide](./docs/migration.md)** - Migrating from v1.x and other authentication libraries
+🔄 **[Migration Guide](./docs/migration.md)** - Upgrading between major versions (v1 through v4)
 
 ## Key Features
 

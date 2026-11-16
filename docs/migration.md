@@ -2,6 +2,59 @@
 
 This guide helps you migrate between major versions of the Weblogin Auth SDK.
 
+## Migrating from v3.x to v4.0
+
+Version 4.0 upgrades the session library, iron-session, from v8 to v9. Your configuration and API calls do not change. Check these three things:
+
+### 1. Node.js 22.13 or later
+
+The SDK now requires Node.js 22.13 or later (previously 18). iron-session v9 ships only ES modules, and the SDK's CommonJS build relies on Node's support for `require()` of ES modules, added in 22.13.
+
+```json
+{
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
+```
+
+### 2. Do not store `Date` objects in session data
+
+Session data must be plain JSON. Saving a session that contains a `Date` now throws an error. Previously the `Date` was silently converted to a string.
+
+```typescript
+// v3.x: worked, but you got a string back when reading the session
+await sessionManager.updateSession({
+  meta: { lastLogin: new Date() }
+});
+
+// v4.0: store a timestamp (or an ISO string)
+await sessionManager.updateSession({
+  meta: { lastLogin: Date.now() }
+});
+```
+
+This applies to anything you put in `meta`, whether through `createSession`, `updateSession`, `SessionManager.sealSession`, or a `session` callback. `Map`, `Set`, `BigInt` and functions are also rejected.
+
+### 3. `getSession()` returns `null` for unreadable cookies
+
+When a session cookie is present but cannot be decrypted (invalid, tampered with, or sealed with a different secret), `SessionManager.getSession()` now returns `null`. It used to return an empty object with no `user`.
+
+If you already check for `null`, nothing changes. Code that assumed a non-null session always had a user no longer crashes on those cookies:
+
+```typescript
+const session = await sessionManager.getSession();
+if (!session) {
+  // No session, expired session, or unreadable cookie
+}
+```
+
+`isAuthenticated()` and `getUser()` behave as before.
+
+### Existing sessions keep working
+
+Cookies created by v3.x remain valid after upgrading, so users stay signed in. Cookies created by v4.0 are also readable by v3.x, so you can roll back a deploy without signing everyone out.
+
 ## Migrating from v2.x to v3.0
 
 Version 3.0 introduces built-in Identity Provider (IdP) presets for easier configuration.

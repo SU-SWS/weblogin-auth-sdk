@@ -7,6 +7,7 @@ import { SignedXml } from 'xml-crypto';
 import { DOMParser } from '@xmldom/xmldom';
 import * as xpath from 'xpath';
 import type { SAMLProfile, SamlConfig, AuthenticateOptions } from '../src/types';
+import { signingCert, decryptionCert, argSigningCert, argDecryptionCert } from './fixtures/certs';
 
 // Mock Web API Request
 global.Request = jest.fn().mockImplementation((input, init) => ({
@@ -41,6 +42,73 @@ describe('SAMLProvider', () => {
     test('should create SAMLProvider with valid config', () => {
       const provider = new SAMLProvider(validConfig, logger);
       expect(provider).toBeInstanceOf(SAMLProvider);
+    });
+
+    describe('optional encryption', () => {
+      const encryptionEnv = ['WEBLOGIN_AUTH_SAML_DECRYPTION_KEY', 'WEBLOGIN_AUTH_SAML_DECRYPTION_CERT'];
+      const saved: Record<string, string | undefined> = {};
+      const withoutEncryption = { ...validConfig } as Partial<SamlConfig>;
+      delete withoutEncryption.decryptionPvk;
+      delete withoutEncryption.decryptionCert;
+
+      beforeEach(() => {
+        for (const key of encryptionEnv) {
+          saved[key] = process.env[key];
+          delete process.env[key];
+        }
+      });
+
+      afterEach(() => {
+        for (const key of encryptionEnv) {
+          if (saved[key] === undefined) delete process.env[key];
+          else process.env[key] = saved[key];
+        }
+      });
+
+      test('should create SAMLProvider without decryption key or cert', () => {
+        const provider = new SAMLProvider(withoutEncryption as SamlConfig, logger);
+        // @ts-expect-error accessing private property for testing
+        expect(provider.provider.options.decryptionPvk).toBeUndefined();
+      });
+
+      test('should omit the encryption KeyDescriptor from metadata when encryption is not configured', () => {
+        const provider = new SAMLProvider({ ...withoutEncryption, cert: signingCert } as SamlConfig, logger);
+
+        const metadata = provider.getMetadata();
+
+        expect(metadata).toContain('<KeyDescriptor use="signing">');
+        expect(metadata).not.toContain('use="encryption"');
+      });
+
+      test('should include the encryption KeyDescriptor in metadata when encryption is configured', () => {
+        const provider = new SAMLProvider({ ...validConfig, cert: signingCert, decryptionCert }, logger);
+
+        const metadata = provider.getMetadata();
+
+        expect(metadata).toContain('<KeyDescriptor use="encryption">');
+      });
+
+      test('should throw when decryptionPvk is set without decryptionCert', () => {
+        expect(() => {
+          new SAMLProvider({ ...withoutEncryption, decryptionPvk: 'test-decryption-key' } as SamlConfig, logger);
+        }).toThrow('decryptionPvk is set but decryptionCert is not');
+      });
+
+      test('should throw when decryptionCert is set without decryptionPvk', () => {
+        expect(() => {
+          new SAMLProvider({ ...withoutEncryption, decryptionCert: 'test-decryption-cert' } as SamlConfig, logger);
+        }).toThrow('decryptionCert is set but decryptionPvk is not');
+      });
+
+      test('should accept the pair from environment variables', () => {
+        process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_KEY = 'env-decryption-key';
+        process.env.WEBLOGIN_AUTH_SAML_DECRYPTION_CERT = 'env-decryption-cert';
+
+        const provider = new SAMLProvider(withoutEncryption as SamlConfig, logger);
+
+        // @ts-expect-error accessing private property for testing
+        expect(provider.provider.options.decryptionPvk).toContain('env-decryption-key');
+      });
     });
 
     test('should throw AuthError for missing required config when no env vars', () => {
@@ -673,8 +741,8 @@ CLEAN_ME_2
 
   describe('getMetadata', () => {
     // A real key pair, so signatures can be computed and verified. The
-    // certificates in metadata are only embedded as text, so placeholder
-    // base64 values are enough there.
+    // certificates embedded in metadata come from fixtures, because node-saml
+    // parses them and rejects placeholder values.
     const { privateKey: signingKey, publicKey: verifyKey } = generateKeyPairSync('rsa', {
       modulusLength: 2048,
       privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
@@ -683,8 +751,8 @@ CLEAN_ME_2
     const metadataConfig: SamlConfig = {
       ...validConfig,
       privateKey: signingKey,
-      cert: 'Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=',
-      decryptionCert: 'Y29uZmlndXJlZC1kZWNyeXB0aW9uLWNlcnQ=',
+      cert: signingCert,
+      decryptionCert,
     };
 
     const verify = (xml: string): boolean => {
@@ -814,28 +882,26 @@ CLEAN_ME_2
 
       const certs = certsByUse(provider.getMetadata());
 
-      expect(certs.signing).toBe('Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=');
-      expect(certs.encryption).toBe('Y29uZmlndXJlZC1kZWNyeXB0aW9uLWNlcnQ=');
+      expect(certs.signing).toBe(signingCert);
+      expect(certs.encryption).toBe(decryptionCert);
     });
 
     test('should use decryption cert from argument when provided', () => {
       const provider = new SAMLProvider(metadataConfig, logger);
 
-      const certs = certsByUse(provider.getMetadata('YXJnLWRlY3J5cHRpb24tY2VydA=='));
+      const certs = certsByUse(provider.getMetadata(argDecryptionCert));
 
-      expect(certs.encryption).toBe('YXJnLWRlY3J5cHRpb24tY2VydA==');
-      expect(certs.signing).toBe('Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=');
+      expect(certs.encryption).toBe(argDecryptionCert);
+      expect(certs.signing).toBe(signingCert);
     });
 
     test('should prioritize argument certs over configured certs', () => {
       const provider = new SAMLProvider(metadataConfig, logger);
 
-      const certs = certsByUse(
-        provider.getMetadata('YXJnLWRlY3J5cHRpb24tY2VydA==', 'YXJnLXNpZ25pbmctY2VydA==')
-      );
+      const certs = certsByUse(provider.getMetadata(argDecryptionCert, argSigningCert));
 
-      expect(certs.encryption).toBe('YXJnLWRlY3J5cHRpb24tY2VydA==');
-      expect(certs.signing).toBe('YXJnLXNpZ25pbmctY2VydA==');
+      expect(certs.encryption).toBe(argDecryptionCert);
+      expect(certs.signing).toBe(argSigningCert);
     });
 
     test('should always include AssertionConsumerService elements (required by SAML 2.0 schema)', () => {

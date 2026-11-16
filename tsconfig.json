@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "outDir": "./dist/esm",
+    "rootDir": "./src",
     "module": "nodenext",
     "declaration": true,
     "target": "es2022",
@@ -10,7 +11,8 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true
+    "strict": true,
+    "types": ["node"]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "tests"]

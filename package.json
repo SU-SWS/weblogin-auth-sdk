@@ -85,7 +85,8 @@
   "homepage": "https://github.com/SU-SWS/weblogin-auth-sdk#readme",
   "dependencies": {
     "@node-saml/node-saml": "^5.0.1",
-    "iron-session": "^9.1.0"
+    "iron-session": "^9.1.0",
+    "xml-crypto": "^6.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

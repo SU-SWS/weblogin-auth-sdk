@@ -8,7 +8,7 @@ For Copilot: Build a framework-agnostic authentication library in TypeScript usi
 
 0) Scope & Goals
 
-Runtime: Node 18+ (Web Crypto available). Serverless friendly. No in-memory state.
+Runtime: Node 22.13+ (Web Crypto available; iron-session v9 is ESM-only and the CJS build relies on require() of ES modules). Serverless friendly. No in-memory state.
 
 Flows: SP‑initiated SAML only (AuthnRequest → IdP → ACS). IdP‑initiated login is out of scope.
 

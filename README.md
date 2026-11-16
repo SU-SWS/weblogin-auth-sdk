@@ -1,6 +1,6 @@
 # Weblogin Auth SDK
 
-**Version 3**
+**Version 4**
 
 A framework-agnostic TypeScript authentication library for Stanford Weblogin integration. 
 Designed for serverless, stateless environments with security-first defaults and cookie-only sessions.
@@ -18,15 +18,13 @@ Designed for serverless, stateless environments with security-first defaults and
 
 📚 **[Getting Started](./docs/getting-started.md)** - Installation and basic setup for Next.js and Express.js
 
-⚙️ **[Configuration](./docs/configuration.md)** - Complete configuration reference and environment variables
+⚙️ **[Configuration](./docs/configuration.md)** - Complete configuration reference
 
-🔒 **[Security](./docs/security.md)** - Security features, best practices, and threat protection
+🔑 **[Environment Variables](./docs/environment-variables.md)** - Environment variable reference and security best practices
 
 ⚡ **[Edge Functions](./docs/edge-functions.md)** - Ultra-fast session validation in edge environments
 
 🚀 **[Advanced Usage](./docs/advanced-usage.md)** - Custom implementations, performance optimization, and advanced patterns
-
-📖 **[API Reference](./docs/api-reference.md)** - Complete API documentation with examples
 
 🔄 **[Migration Guide](./docs/migration.md)** - Upgrading between major versions (v1 through v4)
 

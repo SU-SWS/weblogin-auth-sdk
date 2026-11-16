@@ -33,7 +33,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         # Specify a different token to allow pushing changes to main later
         with:
           token: ${{ secrets.ADMIN_GITHUB_TOKEN }}
@@ -76,7 +76,7 @@ jobs:
 
       # Push commits back to origin repo.
       - name: Push Changes
-        uses: ad-m/github-push-action@master
+        uses: ad-m/github-push-action@v1.3.0
         with:
           github_token: ${{ secrets.ADMIN_GITHUB_TOKEN }}
           branch: ${{ github.base_ref }}
@@ -90,19 +90,23 @@ jobs:
 
       - name: Publish Release
         id: release
-        uses: release-drafter/release-drafter@v5
+        uses: release-drafter/release-drafter@v7
         with:
           version: ${{ env.RELEASE_TAG }}
           publish: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.ADMIN_GITHUB_TOKEN }}
+          token: ${{ secrets.ADMIN_GITHUB_TOKEN }}
 
-      # Set up Node.js for npm publishing
+      # Set up Node.js for npm publishing.
+      # Publishing uses npm trusted publishing (OIDC), which needs npm 11.5.1 or
+      # later. Node 24 ships with it, so keep this pinned rather than following
+      # .nvmrc. Do not rename this workflow file: npm's trusted publisher
+      # configuration is tied to it.
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
 
       # Install dependencies and build the package
       - name: Install dependencies

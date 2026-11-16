@@ -316,7 +316,8 @@ export class WebLoginNext {
       });
 
       throw new Error(
-        `Failed to access Next.js cookies: ${(error as Error).message}. Make sure this code is running in a Next.js App Router context.`
+        `Failed to access Next.js cookies: ${(error as Error).message}. Make sure this code is running in a Next.js App Router context.`,
+        { cause: error }
       );
     }
   }

@@ -147,6 +147,16 @@ describe('SessionManager', () => {
 
       expect(session).toBeNull();
     });
+
+    it('should return null when the cookie cannot be unsealed into a session', async () => {
+      // iron-session returns an empty session for invalid or tampered cookies
+      mockCookieStore.get.mockReturnValue({ name: 'test-session', value: 'tampered-value' });
+
+      const session = await sessionManager.getSession();
+
+      expect(session).toBeNull();
+      expect(mockIronSession.destroy).not.toHaveBeenCalled();
+    });
   });
 
   describe('createSession', () => {

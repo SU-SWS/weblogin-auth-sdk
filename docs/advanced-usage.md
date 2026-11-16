@@ -259,6 +259,8 @@ callbacks: {
 }
 ```
 
+Session metadata is serialized as JSON. Store timestamps as numbers (`Date.now()`), not `Date` objects: saving a session that contains a `Date` throws an error.
+
 ### Dynamic Session Updates
 
 Use the `updateSession` method to modify session data after initial authentication:

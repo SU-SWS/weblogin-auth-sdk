@@ -10,7 +10,7 @@ npm install weblogin-auth-sdk
 
 ## Requirements
 
-- Node.js 18 or higher
+- Node.js 22.13 or higher
 - TypeScript 5.x (recommended)
 - A SAML entity and certificate
 

@@ -7,6 +7,7 @@ import { SignedXml } from 'xml-crypto';
 import { DOMParser } from '@xmldom/xmldom';
 import * as xpath from 'xpath';
 import type { SAMLProfile, SamlConfig, AuthenticateOptions } from '../src/types';
+import { signingCert, decryptionCert, argSigningCert, argDecryptionCert } from './fixtures/certs';
 
 // Mock Web API Request
 global.Request = jest.fn().mockImplementation((input, init) => ({
@@ -71,7 +72,7 @@ describe('SAMLProvider', () => {
       });
 
       test('should omit the encryption KeyDescriptor from metadata when encryption is not configured', () => {
-        const provider = new SAMLProvider(withoutEncryption as SamlConfig, logger);
+        const provider = new SAMLProvider({ ...withoutEncryption, cert: signingCert } as SamlConfig, logger);
 
         const metadata = provider.getMetadata();
 
@@ -80,7 +81,7 @@ describe('SAMLProvider', () => {
       });
 
       test('should include the encryption KeyDescriptor in metadata when encryption is configured', () => {
-        const provider = new SAMLProvider(validConfig, logger);
+        const provider = new SAMLProvider({ ...validConfig, cert: signingCert, decryptionCert }, logger);
 
         const metadata = provider.getMetadata();
 
@@ -740,8 +741,8 @@ CLEAN_ME_2
 
   describe('getMetadata', () => {
     // A real key pair, so signatures can be computed and verified. The
-    // certificates in metadata are only embedded as text, so placeholder
-    // base64 values are enough there.
+    // certificates embedded in metadata come from fixtures, because node-saml
+    // parses them and rejects placeholder values.
     const { privateKey: signingKey, publicKey: verifyKey } = generateKeyPairSync('rsa', {
       modulusLength: 2048,
       privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
@@ -750,8 +751,8 @@ CLEAN_ME_2
     const metadataConfig: SamlConfig = {
       ...validConfig,
       privateKey: signingKey,
-      cert: 'Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=',
-      decryptionCert: 'Y29uZmlndXJlZC1kZWNyeXB0aW9uLWNlcnQ=',
+      cert: signingCert,
+      decryptionCert,
     };
 
     const verify = (xml: string): boolean => {
@@ -837,28 +838,26 @@ CLEAN_ME_2
 
       const certs = certsByUse(provider.getMetadata());
 
-      expect(certs.signing).toBe('Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=');
-      expect(certs.encryption).toBe('Y29uZmlndXJlZC1kZWNyeXB0aW9uLWNlcnQ=');
+      expect(certs.signing).toBe(signingCert);
+      expect(certs.encryption).toBe(decryptionCert);
     });
 
     test('should use decryption cert from argument when provided', () => {
       const provider = new SAMLProvider(metadataConfig, logger);
 
-      const certs = certsByUse(provider.getMetadata('YXJnLWRlY3J5cHRpb24tY2VydA=='));
+      const certs = certsByUse(provider.getMetadata(argDecryptionCert));
 
-      expect(certs.encryption).toBe('YXJnLWRlY3J5cHRpb24tY2VydA==');
-      expect(certs.signing).toBe('Y29uZmlndXJlZC1zaWduaW5nLWNlcnQ=');
+      expect(certs.encryption).toBe(argDecryptionCert);
+      expect(certs.signing).toBe(signingCert);
     });
 
     test('should prioritize argument certs over configured certs', () => {
       const provider = new SAMLProvider(metadataConfig, logger);
 
-      const certs = certsByUse(
-        provider.getMetadata('YXJnLWRlY3J5cHRpb24tY2VydA==', 'YXJnLXNpZ25pbmctY2VydA==')
-      );
+      const certs = certsByUse(provider.getMetadata(argDecryptionCert, argSigningCert));
 
-      expect(certs.encryption).toBe('YXJnLWRlY3J5cHRpb24tY2VydA==');
-      expect(certs.signing).toBe('YXJnLXNpZ25pbmctY2VydA==');
+      expect(certs.encryption).toBe(argDecryptionCert);
+      expect(certs.signing).toBe(argSigningCert);
     });
 
     test('should always include AssertionConsumerService elements (required by SAML 2.0 schema)', () => {

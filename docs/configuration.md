@@ -133,7 +133,8 @@ Available presets:
 | `wantAuthnResponseSigned` | `boolean` | `true` | Require signed SAML responses |
 | `acceptedClockSkewMs` | `number` | `60000` | Allowed clock skew in milliseconds |
 | `skipRequestAcsUrl` | `boolean` | `true` | Skip ACS URL in AuthnRequest. When enabled, the AuthnRequest won't include `AssertionConsumerServiceURL`. The generated metadata will always include `AssertionConsumerService` elements (required by SAML 2.0 schema). This is useful for dynamic deployments (e.g. Vercel preview) and is compatible with Stanford's `skipEndpointValidationWhenSigned` IdP configuration. See [Stanford's documentation](https://uit.stanford.edu/service/saml/skipendpointvalidation) |
-| `decryptionCert` | `string` | `undefined` | Public certificate for SAML decryption (PEM format) |
+| `decryptionPvk` | `string` | `undefined` | Private key for decrypting encrypted SAML assertions. Set with `decryptionCert` to enable encryption; omit both to receive signed, unencrypted assertions |
+| `decryptionCert` | `string` | `undefined` | Public certificate for SAML decryption (PEM format), published in metadata so the IdP can encrypt to it. Must be set with `decryptionPvk` |
 | `signatureAlgorithm` | `string` | `'sha256'` | SAML signature algorithm ('sha1', 'sha256', 'sha512') |
 | `digestAlgorithm` | `string` | `'sha1'` | SAML digest algorithm ('sha1', 'sha256', 'sha512') |
 | `identifierFormat` | `string` | `transient` | SAML identifier format |

@@ -90,7 +90,7 @@ WEBLOGIN_AUTH_SESSION_SECRET="your-32-character-minimum-secret-key-here"
 
 **Description**: Private key for decrypting encrypted SAML assertions  
 **Type**: `string` (PEM format, with or without headers)  
-**Required**: Yes (if not provided in config)  
+**Required**: No. Set it together with `WEBLOGIN_AUTH_SAML_DECRYPTION_CERT` to receive encrypted assertions, or leave both unset to receive signed, unencrypted assertions. Setting only one of the pair is a configuration error.  
 **Security**: Keep this highly secure - never commit to version control  
 **Note**: Headers/footers (`-----BEGIN PRIVATE KEY-----`) are automatically stripped  
 **Related**: Must be the private key corresponding to `WEBLOGIN_AUTH_SAML_DECRYPTION_CERT`  
@@ -103,7 +103,7 @@ WEBLOGIN_AUTH_SAML_DECRYPTION_KEY="MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAA
 
 **Description**: Public certificate for SAML assertion decryption  
 **Type**: `string` (PEM format, with or without headers)  
-**Required**: Yes (if not provided in config)  
+**Required**: No. Must be set together with `WEBLOGIN_AUTH_SAML_DECRYPTION_KEY`.  
 **Used by**: Metadata generation - share this with the IdP for encryption  
 **Note**: Headers/footers are automatically stripped  
 **Related**: Must correspond to `WEBLOGIN_AUTH_SAML_DECRYPTION_KEY`  
@@ -180,8 +180,8 @@ NODE_ENV="development"  # or "production"
 | `WEBLOGIN_AUTH_ACS_URL_ORIGIN` | `returnToOrigin` | Yes |
 | `WEBLOGIN_AUTH_SAML_PRIVATE_KEY` | `privateKey` | Yes |
 | `WEBLOGIN_AUTH_SAML_SP_CERT` | `cert` | Yes |
-| `WEBLOGIN_AUTH_SAML_DECRYPTION_KEY` | `decryptionPvk` | Yes |
-| `WEBLOGIN_AUTH_SAML_DECRYPTION_CERT` | `decryptionCert` | Yes |
+| `WEBLOGIN_AUTH_SAML_DECRYPTION_KEY` | `decryptionPvk` | No (set with `decryptionCert` to enable encryption) |
+| `WEBLOGIN_AUTH_SAML_DECRYPTION_CERT` | `decryptionCert` | No (set with `decryptionPvk` to enable encryption) |
 | `WEBLOGIN_AUTH_SESSION_SECRET` | `session.secret` | Yes |
 | `WEBLOGIN_AUTH_IDP_ENTRY_POINT` | `entryPoint` | No |
 | `WEBLOGIN_AUTH_CALLBACK_PATH` | `returnToPath` | No |
@@ -206,7 +206,7 @@ WEBLOGIN_AUTH_ACS_URL_ORIGIN="https://myapp.example.com"
 WEBLOGIN_AUTH_SAML_PRIVATE_KEY="MIIEvgIBADANBgkqhkiG9w0..."
 WEBLOGIN_AUTH_SAML_SP_CERT="MIIDpDCCAoygAwIBAgIGAYN..."
 
-# Required Decryption Keys (for encrypted SAML assertions)
+# Optional Decryption Keys (set both to receive encrypted SAML assertions)
 WEBLOGIN_AUTH_SAML_DECRYPTION_KEY="MIIEvgIBADANBgkqhkiG9w0..."
 WEBLOGIN_AUTH_SAML_DECRYPTION_CERT="MIIDpDCCAoygAwIBAgIGAYN..."
 
